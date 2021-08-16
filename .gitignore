@@ -1,0 +1,10 @@
+config/config.json
+*.db
+*.txt
+node_modules
+*.log
+*.db-journal
+*.save
+*.swp
+data/**
+package-lock.json

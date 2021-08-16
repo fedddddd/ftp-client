@@ -1,0 +1,76 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' data: https://*">
+        <link rel="stylesheet" type="text/css" href="../css/index.css">
+        <script type="text/javascript" src="../js/index.js"></script>
+        <script type="text/javascript" src="../js/font-awesome.js"></script>
+    </head>
+    <body>
+        <div class="main-window">
+            <div class="frame">
+                <div class="frame-right">
+                    <div class="button button-red"></div>
+                    <div class="button button-yellow"></div>
+                    <div class="button button-green"></div>
+                </div>
+                <div class="frame-left">
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="content-left">
+                    <div class="server-list-wrap">
+                        <div class="server-list-header left-right-container">
+                            <div class="left">
+                                <div class="search-box-wrap">
+                                    <div class="search-box" contenteditable="true" search-server placeholder="Search server..."></div>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <i class="fas fa-plus-circle server-list-button click" add-server-btn></i>
+                                <i class="fas fa-link server-list-button click" connect-btn></i>
+                            </div>
+                        </div>
+                        <div class="servers scroll hide-scrollbar" server-list>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <div class='content-right'>
+                    <div class="log-wrap">
+                        <div class="log scroll">
+                        </div>
+                    </div>
+                    <div class="explorer-bar">
+                        <div class="left-right-container">
+                            <div class="left directory-list hide-scrollbar" horizontal-scrolling>
+                            </div>
+                            <div class="right">
+                                <div class="search-box-wrap">
+                                    <div class="search-box" contenteditable="true" search-file placeholder="Search file..."></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="explorer-wrap">
+                        <div class="explorer-header">
+                            <div class="file left-right-container no-border">
+                                <div class="left">
+                                    <div class="file-name click" sort-name>Filename</div>
+                                </div>
+                                <div class="right">
+                                    <div class="file-size click" sort-size>Size</div>
+                                    <div class="file-date click" sort-date>Last modified</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="explorer scroll" id="explorer">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
