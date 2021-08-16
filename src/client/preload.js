@@ -22,6 +22,11 @@ const clientTypes = {
     sftp: require('ssh2-sftp-client')
 }
 
+path.__normalize = path.normalize
+path.normalize = (_path) => {
+    return path.__normalize(_path).replace(new RegExp(/\\/g), '/')
+}
+
 const createClient = (type) => {
     switch (type) {
         case 'sftp':
@@ -1037,6 +1042,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         text: 'Refresh',
                         icon: 'fa-sync-alt',
                         callback: () => {
+                            fileExplorer.cachedDirectories[fileExplorer.currentDirectory] = null
                             fileExplorer.listFiles(fileExplorer.currentDirectory)
                         }
                     }
@@ -1212,7 +1218,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.fileExplorer = {
             currentDirectory: './',
             selectedItems: [],
-            selectedItem: null
+            selectedItem: null,
+            cachedDirectories: {}
         }
 
         window.client = createClient(config.type)
@@ -1223,11 +1230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             print(`Connected to ^2${config.host}`)
     
             fileExplorer.currentDirectory = await client.currentDir()
-        
-            path.__normalize = path.normalize
-            path.normalize = (_path) => {
-                return path.__normalize(_path).replace(new RegExp(/\\/g), '/')
-            }
         
             if (!fs.existsSync('./data/')) {
                 fs.mkdirSync('./data/')
@@ -1255,6 +1257,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     directoryList.appendChild(element)
                 })
+
+                directoryList.scrollLeft = directoryList.scrollWidth
 
                 const selectedFiles = Array.from(fileExplorer.selectedItems).map(item => item.file)
                 fileExplorer.selectedItems = []
@@ -1288,8 +1292,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 directory = path.normalize(directory + '/')
                 print(`Listing directory ^3'${directory}'^7...`)
 
-                client.list(directory)
-                .then((files) => {
+                const callback = (files) => {
+                    fileExplorer.cachedDirectories[directory] = files
+
                     var i = 0
                     files.forEach(file => {
                         file.id = i++
@@ -1301,6 +1306,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         
                     fileExplorer.viewFiles()
                     print(`Directory listing of ^3'${directory}'^7 successful`)
+                }
+
+                if (fileExplorer.cachedDirectories[directory]) {
+                    return callback(fileExplorer.cachedDirectories[directory])
+                }
+
+                client.list(directory)
+                .then((files) => {
+                    callback(files)
                 })
                 .catch((err) => {
                     error(baseErrorMessage(err))

@@ -549,13 +549,15 @@ option {
 }
 
 .directory-arrow {
-    margin-bottom: -2px;
-    padding-left: 10px;
-    padding-right: 10px;
+    margin-bottom: -3px;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 .directory-name {
     padding: 5px;
+    padding-right: 10px;
+    padding-left: 10px;
     display: flex;
     align-items: center;
     border-radius: 6px;
@@ -568,10 +570,23 @@ option {
 .directory-list {
     background-color: rgb(40, 40, 40);
     border-radius: 6px;
+    flex-grow: 3!important;
     width: 1px;
     overflow-x: scroll;
 }
 
+.file-search {
+    width: 100%!important;
+}
+
 .directory:last-child .directory-arrow{
     display: none;
+}
+
+.explorer-bar-container > div {
+    margin-right: 10px;
+}
+
+.explorer-bar-container > div:last-child {
+    margin-right: 0px;
 }
