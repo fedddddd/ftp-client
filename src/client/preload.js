@@ -4,11 +4,13 @@ const {
 }                  = require('@electron/remote')
 const fs           = require('fs')
 const path         = require('path')
+const moment       = require('moment')
 
 const templates    = require('./js/templates')
 const FileExplorer = require('./js/file-explorer')
 const messageBox   = require('./js/message-box')
 const localization = require('./js/localization')
+const io           = require('../utils/io')
 
 const authenticationTypes = ['ask', 'password', 'key']
 const protocols = ['ftp', 'sftp']
@@ -22,25 +24,38 @@ const clientTypes = {
     sftp: require('ssh2-sftp-client')
 }
 
-if (!fs.existsSync('./data/')) {
-    fs.mkdirSync('./data/')
-}
+io.createDirectory('./data/config/')
+io.createDirectory('./data/temp/')
 
-if (!fs.existsSync('./data/known-hosts.json')) {
-    fs.writeFileSync('./data/known-hosts.json', '{\n}')
-}
+const appConfig = new io.ConfigFile('./data/config/config.json', baseConfig)
+const knownHosts = new io.ConfigFile('./data/config/known-hosts.json')
 
-const knownHosts = {}
 knownHosts.add = (host, os) => {
-    const json = JSON.parse(fs.readFileSync('./data/known-hosts.json'))
-    json[host] = os
-    console.log(json)
-    fs.writeFileSync('./data/known-hosts.json', JSON.stringify(json, null, 4))
+    knownHosts.current[host] = os
+    knownHosts.save()
 }
 
 knownHosts.find = (host) => {
-    const json = JSON.parse(fs.readFileSync('./data/known-hosts.json'))
-    return json[host]
+    return knownHosts.current[host]
+}
+
+const osIcons = {
+    'linux': 'fab fa-linux',
+    'ubuntu': 'fab fa-ubuntu',
+    'suse': 'fab fa-suse',
+    'redhat': 'fab fa-redhat',
+    'fedora': 'fab fa-fedora',
+    'centos': 'fab fa-centos',
+    'raspbian': 'fab fa-raspberry-pi',
+    'raspberrypi': 'fab fa-raspberry-pi',
+    'raspberry-pi': 'fab fa-raspberr-ypi',
+    'windows': 'fab fa-windows',
+    'unknown': 'fad fa-question-circle',
+    'ftp': 'fas fa-server'
+}
+
+const getOSIcon = (type, os) => {
+    return type == 'sftp' ? osIcons[os] || osIcons['unknown'] : osIcons['ftp']
 }
 
 const createClient = (type) => {
@@ -115,7 +130,7 @@ const createClient = (type) => {
                 client._get = client.get
                 client.currentDir = client.pwd
                 client.getOS = () => {
-                    return 'unknown'
+                    return 'ftp'
                 }
 
                 client.get = (source, destination) => {
@@ -204,16 +219,38 @@ const error = (text) => {
 //process.on('uncaughtException', error)
 //process.on('unhandledRejection', error)
 
-const readConfig = () => {
-    if (!fs.existsSync('./data/config/')) {
-        fs.mkdirSync('./data/config/', {recursive: true})
+const validateServer = (server) => {
+    if (!server.host) {
+        return 'Host cannot be empty'
     }
 
-    if (!fs.existsSync('./data/config/config.json')) {
-        fs.writeFileSync('./data/config/config.json', JSON.stringify(baseConfig))
+    if (!authenticationTypes.includes(server.authtype)) {
+        return 'Invalid authentication type'
+    }
+    
+    if (!protocols.includes(server.protocol)) {
+        return 'Invalid protocol'
     }
 
-    return {...baseConfig, ...JSON.parse(fs.readFileSync('./data/config/config.json'))}
+    if (server.protocol != 'sftp' && server.authtype == 'key') {
+        return 'Invalid Authentication type'
+    }
+
+    if (server.authtype == 'key' && !server.key) {
+        return 'Private key cannot be empty'
+    }
+
+    if (server.authtype == 'key' && !fs.existsSync(server.key)) {
+        return 'Private key file does not exist'
+    }
+
+    if (!server.username) {
+        return 'Username cannot be empty'
+    }
+
+    if (server.authtype == 'password' && !server.password) {
+        return 'Password cannot be empty'
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -272,9 +309,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addServer = (config) => {
         const name = config.name || config.host
         const os = knownHosts.find(config.host)
-        const element = htmlElement(templates['server'](name, os || '', os ? `fab fa-${os}` : 'fad fa-question-circle'))
+        const osText = `${os ? `${os}, ${config.protocol}` : config.protocol}`
+        const date = moment(config.lastConnection).fromNow()
+        const element = htmlElement(templates['server'](name, osText, getOSIcon(config.protocol, os), date))
+        element.config = config
 
         const deleteButton = element.querySelector('[delete-btn]')
+        const editButton = element.querySelector('[edit-btn]')
+
         deleteButton.addEventListener('click', () => {
             messageBox({
                 title: 'SL_DELETE_SERVER'.t,
@@ -285,7 +327,102 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 element.remove()
+                const index = appConfig.current.servers.findIndex(server => new Date(server.date) - 0 == new Date(config.date) - 0)
+                appConfig.current.servers.splice(index, 1)
+                appConfig.save()
             })
+        })
+
+        editButton.addEventListener('click', async () => {
+            const box = await messageBox({
+                title: 'Edit server',
+                text: templates['addserver'](),
+                buttons: {
+                    yes: 'Ok',
+                    no: 'Cancel'
+                }
+            }, (result) => {
+                if (!result) {
+                    return
+                }
+
+                const server = {
+                    name: nameInput.value,
+                    host: hostInput.value,
+                    protocol: protocolSelect.value,
+                    authtype: authTypeSelect.value,
+                    username: usernameInput.value,
+                    password: passwordInput.value,
+                    key: keyInput.value,
+                    date: config.date,
+                    lastConnection: new Date()
+                }
+
+                const error = validateServer(server)
+                if (error) {
+                    box.error(error)
+                    return true
+                }
+    
+                const index = appConfig.current.servers.findIndex((server) => new Date(server.date) - 0 == new Date(config.date) - 0)
+                appConfig.current.servers[index] = server
+                appConfig.save()
+                element.remove()
+                addServer({...server})
+            })
+    
+            const browseButton = box.querySelector('.server-settings-browse-btn')
+            const nameInput = box.querySelector('[input-name]')
+            const hostInput = box.querySelector('[input-host]')
+            const protocolSelect = box.querySelector('[input-protocol]')
+            const keySelect = box.querySelector('.server-settings-key')
+            const keyOption = box.querySelector('[key-option]')
+            const keyInput = box.querySelector('[input-key]')
+            const usernameInput = box.querySelector('[input-username]')
+            const passwordInput = box.querySelector('[input-password]')
+            const authTypeSelect = box.querySelector('[input-auth-type]')
+
+            nameInput.value = config.name
+            hostInput.value = config.host
+            protocolSelect.value = config.protocol
+            authTypeSelect.value = config.authtype
+            usernameInput.value = config.username
+            passwordInput.value = config.password
+            keyInput.value = config.key
+            keyInput.value = config.key
+    
+            browseButton.addEventListener('click', () => {
+                dialog.showOpenDialog()
+                .then(result => {
+                    keyInput.value = result.filePaths[0] || ''
+                })
+            })
+    
+            const updateProtocol = () => {
+                if (protocolSelect.value == 'ftp') {
+                    keyOption.style.display = 'none'
+                    keyOption.selected = false
+                    protocolSelect.firstChild.selected = true
+                    updateAuthType()
+                } else {
+                    keyOption.style.display = 'block'
+                }
+            }
+    
+            const updateAuthType = () => {
+                keySelect.style.display = authTypeSelect.value == 'key'
+                    ? 'flex'
+                    : 'none'
+    
+                passwordInput.style.display = authTypeSelect.value == 'password'
+                    ? 'block'
+                    : 'none'
+            }
+    
+            updateAuthType()
+            updateProtocol()
+            authTypeSelect.addEventListener('change', updateAuthType)
+            protocolSelect.addEventListener('change', updateProtocol)
         })
 
         element.addEventListener('dblclick', (e) => {
@@ -314,19 +451,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
     })
 
-    const searchBox = document.querySelector('[search-server]')
-    searchBox.addEventListener('input', () => {
+    var serverSort = 'date'
+    const serverSortFunctions = {
+        'date': (a, b) => {
+            return new Date(b.config.date) - new Date(a.config.date)
+        },
+        'name': (a, b) => {
+            return a.innerText.localeCompare(b.innerText)
+        }
+    }
+
+    const sortServers = () => {
         const servers = Array.from(serverList.children)
         const query = searchBox.innerText.trim().toLowerCase()
+        const sortedServers = servers.sort(serverSortFunctions[serverSort])
 
-        for (const server of servers) {
+        for (const server of sortedServers) {
+            server.parentNode.appendChild(server)
+
             if (!server.innerText.toLowerCase().match(query)) {
                 server.style.display = 'none'
             } else {
                 server.style.display = ''
             }
         }
+    }
+
+    const serverNameSort = document.querySelector('[server-name-sort]')
+    const serverDateSort = document.querySelector('[server-date-sort]')
+    serverNameSort.addEventListener('change', () => {
+        serverSort = serverNameSort.checked ? 'name' : 'date'
+        sortServers()
     })
+
+    serverDateSort.addEventListener('change', () => {
+        serverSort = serverDateSort.checked ? 'date' : 'name'
+        sortServers()
+    })
+
+    const searchBox = document.querySelector('[search-server]')
+    searchBox.addEventListener('input', sortServers)
 
     const connectButton = document.querySelector('[connect-btn]')
     connectButton.addEventListener('click', async () => {
@@ -351,43 +515,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 key: keyInput.value,
             }
 
-            if (!server.host) {
-                box.error('Host cannot be empty')
-                return true
-            }
-
-            if (!authenticationTypes.includes(server.authtype)) {
-                box.error('Invalid authentication type')
-                return true
-            }
-            
-            if (!protocols.includes(server.protocol)) {
-                box.error('Invalid protocol')
-                return true
-            }
-
-            if (server.protocol != 'sftp' && server.authtype == 'key') {
-                box.error('Invalid Authentication type')
-                return true
-            }
-
-            if (server.authtype == 'key' && !server.key) {
-                box.error('Private key cannot be empty')
-                return true
-            }
-
-            if (server.authtype == 'key' && !fs.existsSync(server.key)) {
-                box.error('Private key file does not exist')
-                return true
-            }
-
-            if (!server.username) {
-                box.error('Username cannot be empty')
-                return true
-            }
-
-            if (server.authtype == 'password' && !server.password) {
-                box.error('Password cannot be empty')
+            const error = validateServer(server)
+            if (error) {
+                box.error(error)
                 return true
             }
 
@@ -462,54 +592,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 username: usernameInput.value,
                 password: passwordInput.value,
                 key: keyInput.value,
-                date: new Date()
+                date: new Date(),
+                lastConnection: new Date(),
             }
 
-            if (!server.host) {
-                box.error('Host cannot be empty')
+
+            const error = validateServer(server)
+            if (error) {
+                box.error(error)
                 return true
             }
 
-            if (!authenticationTypes.includes(server.authtype)) {
-                box.error('Invalid authentication type')
-                return true
-            }
-            
-            if (!protocols.includes(server.protocol)) {
-                box.error('Invalid protocol')
-                return true
-            }
-
-            if (server.protocol != 'sftp' && server.authtype == 'key') {
-                box.error('Invalid Authentication type')
-                return true
-            }
-
-            if (server.authtype == 'key' && !server.key) {
-                box.error('Private key cannot be empty')
-                return true
-            }
-
-            if (server.authtype == 'key' && !fs.existsSync(server.key)) {
-                box.error('Private key file does not exist')
-                return true
-            }
-
-            if (server.authtype == 'password' && !server.password) {
-                box.error('Password cannot be empty')
-                return true
-            }
-
-            if (!server.username) {
-                box.error('Username cannot be empty')
-                return true
-            }
-
-            const config = readConfig()
-            config.servers.push(server)
-            fs.writeFileSync('./data/config/config.json', JSON.stringify(config, null, 4))
-
-            addServer(server)
+            appConfig.current.servers.push(server)
+            appConfig.save()
+            addServer({...server})
         })
 
         const errorText = box.querySelector('[error]')
@@ -589,6 +685,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const connect = async (config, element) => 
     {
+        const index = appConfig.current.servers.findIndex(server => new Date(server.date) - 0 == new Date(config.date) - 0)
+
+        if (index != -1) {
+            appConfig.current.servers[index].lastConnection = new Date()
+            appConfig.save()
+        }
+
         const container = document.querySelector('.content-right')
         container.querySelector('.explorer-container').remove()
         const client = createClient(config.type)
@@ -599,10 +702,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         .then(async () => {
             const os = await client.getOS()
             const icon = element.querySelector('.server-icon')
-            const osText = element.querySelector('.server-os')
+            const osTextEl = element.querySelector('.server-os')
 
-            icon.className = os != 'unknown' ? `fab fa-${os} server-icon` : 'fad fa-question-circle server-icon'
-            osText.innerText = os
+            const osText = `${os ? `${os}, ${config.protocol}` : config.protocol}`
+
+            icon.className = `${getOSIcon(config.protocol, os)} server-icon`
+            osTextEl.innerText = osText
 
             knownHosts.add(config.host, os)
 
@@ -615,9 +720,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
     }
 
-    const config = readConfig()
-    
-    for (const server of config.servers) {
-        addServer(server)
-    }
+    const validServers = appConfig.current.servers.filter((server) => {
+        return !validateServer(server)
+    })
+
+    validServers.forEach((server) => {
+        addServer({...server})
+    })
 })

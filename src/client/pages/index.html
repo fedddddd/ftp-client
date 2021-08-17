@@ -25,6 +25,17 @@
                             <div class="search-box-wrap">
                                 <div class="search-box" contenteditable="true" search-server placeholder="Search server..."></div>
                             </div>
+                            <div class='server-sort'>
+                                <label>
+                                    <input type='radio' class='server-sort-name' name='server-sort' server-name-sort>
+                                    <div class='server-sort-background'>&nbsp;</div>
+                                    <div data-text='Name'>&nbsp;</div>
+                                </label>
+                                <label>
+                                    <input type='radio' name='server-sort' checked='true' server-date-sort>
+                                    <div data-text='Date'>&nbsp;</div>
+                                </label>
+                            </div>
                             <i class="fas fa-link server-list-button click" connect-btn></i>
                             <i class="fas fa-plus-circle server-list-button click" add-server-btn></i>
                         </div>

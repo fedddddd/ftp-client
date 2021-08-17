@@ -182,7 +182,7 @@ window.templates = {
             </div>
         `
     },
-    'server': (name, os, icon) => {
+    'server': (name, os, icon, date) => {
             return `
                 <div class='server left-right-container'>
                     <div class='left'>
@@ -197,7 +197,8 @@ window.templates = {
                         </div>
                     </div>
                     <div class='right'>
-                        <i class="fas fa-times server-button click" delete-btn></i>
+                        <i class="fas fa-trash server-button click" delete-btn></i>
+                        <i class="fas fa-edit server-button click" edit-btn></i>
                     </div>
                 </div>
             `

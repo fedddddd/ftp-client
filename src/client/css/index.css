@@ -140,7 +140,6 @@ body {
     display: flex;
     align-content: center;
     align-items: center;
-    width: 250px;
     margin-left: -5px;
     border-radius: 6px;
     background-color: rgb(40, 40, 40);
@@ -544,9 +543,12 @@ option {
     padding: 10px;
     border-bottom: 2px solid rgb(60, 60, 60);
     background-color: rgb(30, 30, 30);
-    cursor: pointer;
     display: flex;
     align-items: center;
+}
+
+.server:hover .server-icon {
+    color: rgb(250, 250, 250);
 }
 
 .server-icon {
@@ -713,9 +715,77 @@ option {
 }
 
 .server-button {
+    margin-bottom: -4px;
+    margin-right: 10px;
+    font-size: 16px;
     display: none!important;
+}
+
+.server-button:first-child {
+    margin-right: 0px!important;
 }
 
 .server:hover .server-button {
     display: block!important;
+}
+
+.server-date {
+    margin-right: 10px;
+    color: rgb(200, 200, 200, 70%);
+    display: none!important;
+}
+
+.server:hover .server-date {
+    display: block!important;
+}
+
+.server-sort {
+    background-color: rgb(40, 40, 40);
+    border-radius: 6px;
+    flex-grow: 0!important;
+    display: flex;
+    width: 90px;
+    height: 100%;
+}
+
+.server-sort label:first-child input:not(:checked) ~ .server-sort-background {
+    margin-left: 45px!important;
+}
+
+.server-sort label input:checked ~ div {
+    color: rgb(240, 240, 240)!important;
+}
+
+.server-sort label div:last-child:before {
+    position: absolute;
+    z-index: 1000;
+    transition: all ease-in-out 0.1s;
+    content: attr(data-text);
+}
+
+.server-sort label input {
+    display: none;
+}
+
+.server-sort-background {
+    z-index: -1;
+    position: absolute;
+    transition: all ease-in-out 0.1s;
+    background-color: rgba(255, 255, 255, 20%)!important;
+}
+
+.server-sort-background:before {
+    transition: all ease-in-out 0s!important;
+}
+
+.server-sort > label div {
+    z-index: 10!important;
+    padding: 7px;
+    width: 30px;
+    display: flex;
+    flex-flow: row;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    font-size: 13px;
 }
