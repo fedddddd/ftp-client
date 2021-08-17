@@ -182,14 +182,22 @@ window.templates = {
             </div>
         `
     },
-    'server': (name, host) => {
+    'server': (name, os, icon) => {
             return `
-                <div class='server'>
-                    <div class='server-name'>
-                        ${name}
+                <div class='server left-right-container'>
+                    <div class='left'>
+                        <i class="${icon} server-icon"></i>
+                        <div class='server-info'>
+                            <div class='server-name'>
+                                ${name}
+                            </div>
+                            <div class='server-os'>
+                                ${os}
+                            </div>
+                        </div>
                     </div>
-                    <div class='server-hostname'>
-                        ${host}
+                    <div class='right'>
+                        <i class="fas fa-times server-button click" delete-btn></i>
                     </div>
                 </div>
             `

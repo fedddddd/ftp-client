@@ -22,6 +22,27 @@ const clientTypes = {
     sftp: require('ssh2-sftp-client')
 }
 
+if (!fs.existsSync('./data/')) {
+    fs.mkdirSync('./data/')
+}
+
+if (!fs.existsSync('./data/known-hosts.json')) {
+    fs.writeFileSync('./data/known-hosts.json', '{\n}')
+}
+
+const knownHosts = {}
+knownHosts.add = (host, os) => {
+    const json = JSON.parse(fs.readFileSync('./data/known-hosts.json'))
+    json[host] = os
+    console.log(json)
+    fs.writeFileSync('./data/known-hosts.json', JSON.stringify(json, null, 4))
+}
+
+knownHosts.find = (host) => {
+    const json = JSON.parse(fs.readFileSync('./data/known-hosts.json'))
+    return json[host]
+}
+
 const createClient = (type) => {
     switch (type) {
         case 'sftp':
@@ -33,6 +54,56 @@ const createClient = (type) => {
                 client.get = client.fastGet
                 client.put = client.fastPut
                 client.currentDir = client.cwd
+                client.getOS = async () => {
+                    const resultRegex = /Distributor ID:(?: +|\t+)(.+)/g
+                    
+                    return new Promise((resolve, reject) => {
+                        var resolved = false
+
+                        client.client.exec('lsb_release -i', (err, stream) => {
+                            stream.on('data', (data) => {
+                                const string = data.toString()
+                                const match = resultRegex.exec(string)
+
+                                if (!match) {
+                                    return
+                                }
+
+                                resolved = true
+                                resolve(match[1].toLowerCase())
+                            })
+
+                            stream.on('close', () => {
+                                if (resolved) {
+                                    return
+                                }
+
+                                client.client.exec('ver', (err, stream) => {
+                                    stream.on('data', (data) => {
+                                        const string = data.toString()
+
+                                        if (!string.toLowerCase().match('microsoft')) {
+                                            resolved = true
+                                            resolve('unknown')
+                                            return
+                                        }
+
+                                        resolved = true
+                                        resolve('windows')
+                                    })
+
+                                    stream.on('close', () => {
+                                        if (resolved) {
+                                            return
+                                        }
+
+                                        resolve('unknown')
+                                    })
+                                })
+                            })
+                        })
+                    })
+                }
 
                 return client
             }
@@ -43,6 +114,9 @@ const createClient = (type) => {
                 client._connect = client.connect
                 client._get = client.get
                 client.currentDir = client.pwd
+                client.getOS = () => {
+                    return 'unknown'
+                }
 
                 client.get = (source, destination) => {
                     client._get(source, (err, stream) => {
@@ -156,7 +230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     })
     
     const serverList = document.querySelector('[server-list]')
-    const connectWrap = (config) => {
+    const connectWrap = (config, element) => {
         config.type = config.protocol
 
         if (config.authtype == 'key') {
@@ -186,21 +260,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 config.password == inputs.password
-                connect(config)
+                connect(config, element)
             })
 
             return
         }
 
-        connect(config)
+        connect(config, element)
     }
 
     const addServer = (config) => {
         const name = config.name || config.host
-        const element = htmlElement(templates['server'](name, ''))
+        const os = knownHosts.find(config.host)
+        const element = htmlElement(templates['server'](name, os || '', os ? `fab fa-${os}` : 'fad fa-question-circle'))
 
-        element.addEventListener('click', () => {
-            connectWrap(config)
+        const deleteButton = element.querySelector('[delete-btn]')
+        deleteButton.addEventListener('click', () => {
+            messageBox({
+                title: 'SL_DELETE_SERVER'.t,
+                text: 'SL_DELETE_SERVER_FORMAT'.mf(name).cc
+            }, (result) => {
+                if (!result) {
+                    return
+                }
+
+                element.remove()
+            })
+        })
+
+        element.addEventListener('dblclick', (e) => {
+            if (e.target.className.match('server-button')) {
+                return
+            }
+
+            connectWrap(config, element)
         })
 
         serverList.prepend(element)
@@ -230,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!server.innerText.toLowerCase().match(query)) {
                 server.style.display = 'none'
             } else {
-                server.style.display = 'block'
+                server.style.display = ''
             }
         }
     })
@@ -494,11 +587,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         menu && menu.remove()
     })
 
-    if (!fs.existsSync('./data/')) {
-        fs.mkdirSync('./data/')
-    }
-
-    const connect = async (config) => 
+    const connect = async (config, element) => 
     {
         const container = document.querySelector('.content-right')
         container.querySelector('.explorer-container').remove()
@@ -508,6 +597,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         print('CLIENT_CONNECT'.mf(config.host))
         client.connect(config)
         .then(async () => {
+            const os = await client.getOS()
+            const icon = element.querySelector('.server-icon')
+            const osText = element.querySelector('.server-os')
+
+            icon.className = os != 'unknown' ? `fab fa-${os} server-icon` : 'fad fa-question-circle server-icon'
+            osText.innerText = os
+
+            knownHosts.add(config.host, os)
+
             print('CLIENT_CONNECT_SUCCESS'.mf(config.host))
             fileExplorer.currentDirectory = await client.currentDir()
             fileExplorer.listFiles()

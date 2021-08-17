@@ -15,5 +15,7 @@
 	"FS_FILE_ALREADY_OPEN_TITLE": "File already open",
 	"FS_FILE_ALREADY_OPEN": "The selected file is already open:<br>^2%s^7<br>Choose what to do:",
 	"FS_REOPEN_FILE": "Reopen file",
-	"FS_REDOWNLOAD_FILE": "Redownload file"
+	"FS_REDOWNLOAD_FILE": "Redownload file",
+	"SL_DELETE_SERVER": "Delete server",
+	"SL_DELETE_SERVER_FORMAT": "Are you sure you want to delete ^2%s^7?"
 }
