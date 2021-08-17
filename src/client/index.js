@@ -20,7 +20,6 @@ const createWindow = () => {
 
     mainWindow.setResizable(true)
     mainWindow.loadFile('pages/index.html')
-    mainWindow.BrowserWindow().getFocusedW
 }
 
 app.whenReady().then(() => {

@@ -647,15 +647,15 @@ window.FileExplorer = class FileExplorer {
                 return
             }
     
-            print('CLIENT_LIST_DIRECTORY'.mf(this.currentDirectory))
+            print('CLIENT_LIST_DIRECTORY'.mf(directory))
             this.client.list(directory)
             .then((files) => {
                 callback(files)
-                print('CLIENT_LIST_DIRECTORY_SUCCESS'.mf(this.currentDirectory))
+                print('CLIENT_LIST_DIRECTORY_SUCCESS'.mf(directory))
                 resolve()
             })
             .catch((err) => {
-                error('CLIENT_LIST_DIRECTORY_FAIL'.mf(this.currentDirectory, baseErrorMessage(err)))
+                error('CLIENT_LIST_DIRECTORY_FAIL'.mf(directory, baseErrorMessage(err)))
                 resolve(err)
             })
         })
