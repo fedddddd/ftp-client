@@ -18,6 +18,7 @@ body {
     margin-top: 9px;
     margin-bottom: 9px;
     margin-left: 10px;
+    -webkit-app-region: no-drag;
 }
 
 .button-red {
@@ -61,10 +62,6 @@ body {
     flex-basis: 1px;
     flex-grow: 1;
     flex-flow: row;
-}
-
-.frame * {
-    -webkit-app-region: no-drag;
 }
 
 .frame {
@@ -343,6 +340,19 @@ body {
     color: rgb(250, 250, 250);
 }
 
+.hover {
+    opacity: 100%!important;
+    transition: all ease-in-out 0.1s;
+}
+
+.hover:hover {
+    color: rgb(250, 250, 250);
+}
+
+.hover-disabled {
+    opacity: 50%;
+}
+
 .messagebox-container {
     transition: all ease-in-out 0.1s;
     width: 100%;
@@ -418,7 +428,6 @@ body {
     background-color: rgba(50, 50, 50, 100%);
 }
 
-input,
 textarea,
 select,
 option {
@@ -426,6 +435,7 @@ option {
 }
 
 .form {
+    all: inherit;
     background-color: rgba(50, 50, 50, 100%);
     border-radius: 6px;
     padding: 10px;
@@ -555,6 +565,7 @@ option {
 }
 
 .directory-name {
+    transition: all ease-in-out 0.1s;
     padding: 5px;
     padding-right: 10px;
     padding-left: 10px;
@@ -570,9 +581,16 @@ option {
 .directory-list {
     background-color: rgb(40, 40, 40);
     border-radius: 6px;
-    flex-grow: 3!important;
+    display: flex;
+    flex-flow: row;
+    flex-grow: 1;
     width: 1px;
+    height: 100%;
     overflow-x: scroll;
+}
+
+.explorer-left {
+    flex-grow: 3!important;
 }
 
 .file-search {
@@ -583,10 +601,66 @@ option {
     display: none;
 }
 
+.explorer-bar-button {
+    display: flex;
+    align-items: center;
+}
+
 .explorer-bar-container > div {
     margin-right: 10px;
 }
 
 .explorer-bar-container > div:last-child {
     margin-right: 0px;
+}
+
+.explorer-button:first-child {
+    padding-left: 5px!important;
+}
+
+.explorer-button {
+    padding-right: 15px;
+    margin-bottom: -2px;
+}
+
+.explorer-container {
+    flex-grow: 1;
+    display: flex;
+    flex-flow: column;
+}
+
+.messagebox-radio {
+    margin-left: 5px;
+    margin-top: 5px;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+}
+
+.radio-container {
+    align-items: center;
+    display: flex;
+    flex-flow: row;
+}
+
+.radio-button {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid rgb(100, 100, 100);
+    background-color: rgba(200, 200, 200, 50%)!important;
+}
+
+.radio-container input {
+    display: none;
+}
+
+.radio-container input:checked ~ .radio-button-container .radio-button {
+    background-color: rgb(200, 200, 200)!important;
+}
+
+.radio-button-container {
+    display: flex;
+    margin-right: 5px;
+    align-items: center;
 }

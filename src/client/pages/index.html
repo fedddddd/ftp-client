@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' data: https://*">
+        <meta http-equiv="Content-Security-Policy" _content="script-src 'self' data: https://*">
         <link rel="stylesheet" type="text/css" href="../css/index.css">
         <script type="text/javascript" src="../js/index.js"></script>
         <script type="text/javascript" src="../js/font-awesome.js"></script>
@@ -43,29 +43,22 @@
                         <div class="log scroll">
                         </div>
                     </div>
-                    <div class="explorer-bar">
-                        <div class="left-right-container explorer-bar-container">
-                            <div class="left directory-list hide-scrollbar" horizontal-scrolling></div>
-                            <div class="right">
-                                <div class="search-box-wrap file-search">
-                                    <div class="search-box" contenteditable="true" search-file placeholder="Search file..."></div>
+                    <div class="explorer-container">
+                        <div class="explorer-bar"></div>
+                        <div class="explorer-wrap">
+                            <div class="explorer-header">
+                                <div class="file left-right-container no-border">
+                                    <div class="left">
+                                        <div class="file-name click" sort-name>Filename</div>
+                                    </div>
+                                    <div class="right">
+                                        <div class="file-size click" sort-size>Size</div>
+                                        <div class="file-date click" sort-date>Last modified</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="explorer-wrap">
-                        <div class="explorer-header">
-                            <div class="file left-right-container no-border">
-                                <div class="left">
-                                    <div class="file-name click" sort-name>Filename</div>
-                                </div>
-                                <div class="right">
-                                    <div class="file-size click" sort-size>Size</div>
-                                    <div class="file-date click" sort-date>Last modified</div>
-                                </div>
+                            <div class="explorer scroll" id="explorer">
                             </div>
-                        </div>
-                        <div class="explorer scroll" id="explorer">
                         </div>
                     </div>
                 </div>
