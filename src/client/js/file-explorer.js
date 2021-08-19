@@ -5,6 +5,8 @@ const open         = require('open')
 const templates    = require('./templates')
 const messageBox   = require('./message-box')
 const localization = require('./localization')
+const progress     = require('progress-stream')
+const { Readable } = require("stream")
 
 const normalizePath = (_path) => {
     return path.normalize(_path).replace(new RegExp(/\\/g), '/')
@@ -296,7 +298,7 @@ window.FileExplorer = class FileExplorer {
                                 const dir = this.currentDirectory + '/' + file.name + '/'
                                 
                                 file.type == '-'
-                                    ? this.open(file.name)
+                                    ? this.open(file)
                                     : this.listFiles(dir)
                             }
                         },
@@ -304,7 +306,9 @@ window.FileExplorer = class FileExplorer {
                             text: 'Download',
                             icon: 'fa-download',
                             callback: () => {
-    
+                                for (const item of this.selectedItems) {
+                                    this.download(item.file)
+                                }
                             }
                         }
                     ],
@@ -346,14 +350,13 @@ window.FileExplorer = class FileExplorer {
                                         return true
                                     }
     
-                                    if (dirname.startsWith('..')) {
-                                        box.error('Directory name cannot start with ".."')
-                                        return true
-                                    }
-    
                                     this.createDirectory(dirname)
-                                    .then(() => {
-                                        this.listFiles(this.currentDirectory)
+                                    .then((err) => {
+                                        if (err) {
+                                            return
+                                        }
+
+                                        this.listFiles(this.currentDirectory, false, false)
                                     })
                                 })
                             }
@@ -395,13 +398,12 @@ window.FileExplorer = class FileExplorer {
                                         return true
                                     }
     
-                                    if (dirname.startsWith('..')) {
-                                        box.error('Directory name cannot start with ".."')
-                                        return true
-                                    }
-    
                                     this.createDirectory(dirname)
-                                    .then(() => {
+                                    .then((err) => {
+                                        if (err) {
+                                            return
+                                        }
+
                                         this.listFiles(this.currentDirectory + '/' + dirname)
                                     })
                                 })
@@ -409,14 +411,63 @@ window.FileExplorer = class FileExplorer {
                         },
                         {
                             text: 'Create new file',
-                            icon: 'fa-edit'
+                            icon: 'fa-edit',
+                            callback: async () => {
+                                menu.remove()
+    
+                                const box = await messageBox({
+                                    title: 'Create new file',
+                                    buttons: {
+                                        yes: 'Create',
+                                        no: 'Cancel'
+                                    },
+                                    inputs: [
+                                        [
+                                            {
+                                                type: 'text',
+                                                id: 'filename',
+                                                name: 'File name'
+                                            }
+                                        ]
+                                    ]
+                                }, (result, inputs) => {
+                                    if (!result) {
+                                        return
+                                    }
+    
+                                    const filename = inputs.filename
+                                    if (!filename) {
+                                        box.error('Invalid file name')
+                                        return true
+                                    }
+    
+                                    if (filename.match(/(\\|\/)/g)) {
+                                        box.error('File name cannot contain the following characters: \\, /')
+                                        return true
+                                    }
+
+                                    if (this.currentFiles.find(file => file.type != 'd' && file.name == filename)) {
+                                        box.error('File already exists')
+                                        return true
+                                    }
+    
+                                    this.createFile(filename)
+                                    .then((err) => {
+                                        if (err) {
+                                            return
+                                        }
+
+                                        this.listFiles(this.currentDirectory, false, false)
+                                    })
+                                })
+                            }
                         },
                         {
                             text: 'Refresh',
                             icon: 'fa-sync-alt',
                             callback: () => {
                                 this.cachedDirectories[this.currentDirectory] = null
-                                this.listFiles(this.currentDirectory)
+                                this.listFiles(this.currentDirectory, false, false)
                             }
                         }
                     ],
@@ -471,6 +522,8 @@ window.FileExplorer = class FileExplorer {
     updateItems = () => {
         for (const child of this.elements.fileList.children) {
             child.style.backgroundColor = ''
+            child.style.opacity = '100%'
+            child.classList.remove('no-child-pointer-events')
         }
 
         for (const item of this.selectedItems) {
@@ -485,7 +538,7 @@ window.FileExplorer = class FileExplorer {
 
         element.addEventListener('dblclick', () => {
             if (file.type == '-') {
-                this.open(file.name)
+                this.open(file)
             } else {
                 this.listFiles(this.currentDirectory + '/' + file.name + '/')
             }
@@ -499,6 +552,116 @@ window.FileExplorer = class FileExplorer {
             this.updateItems()
         })
 
+        element.draggable = true
+
+        var dragStart = null
+        element.addEventListener('dragstart', (e) => {
+            if (!this.selectedItems.find(item => item == element)) {
+                this.selectedItems = []
+                this.updateItems()
+                this.selectedItems.push(element)
+            }
+
+            for (const child of this.elements.fileList.children) {
+                child.classList.add('no-child-pointer-events')
+            }
+
+            dragStart = element
+
+            const draggedElements = document.createElement('div')
+            draggedElements.setAttribute('file-drag', '')
+
+            const selectedItems = this.selectedItems.sort((a, b) => {
+                return a.fileId - b.fileId
+            })
+
+            const first = selectedItems[0]
+            const last = selectedItems[selectedItems.length - 1]
+
+            var next = first
+
+            while (next != last.nextElementSibling) {
+                const clone = next.cloneNode(true)
+                next.style.opacity = 0.5
+                next.style.backgroundColor = 'rgb(30, 30, 30)'
+                clone.style.visibility = selectedItems.find(item => item == next)
+                    ? 'visible'
+                    : 'hidden'
+
+                draggedElements.appendChild(clone)
+
+                next = next.nextElementSibling
+            }
+
+            const rect = first.getBoundingClientRect()
+
+            document.body.appendChild(draggedElements)
+            e.dataTransfer.setDragImage(draggedElements, e.clientX - rect.x, e.screenY - rect.y + rect.height)
+        })
+
+        element.addEventListener('dragend', (e) => {
+            dragStart = null
+
+            Array.from(document.querySelectorAll('[file-drag]')).forEach((element) => {
+                element.remove()
+            })
+
+            this.selectedItems = []
+            this.updateItems()
+        })
+
+        element.addEventListener('dragenter', (e) => {
+            if (element == dragStart) {
+                return
+            }
+
+            element.style.opacity = 1
+            element.style.backgroundColor = 'rgba(90, 90, 90)'
+        })
+
+        element.addEventListener('dragleave', (e) => {
+            if (element == dragStart) {
+                return
+            }
+
+            if (this.selectedItems.find(item => item == element)) {
+                element.style.opacity = 0.5
+                element.style.backgroundColor = 'rgba(30, 30, 30)'
+            } else {
+                element.style.opacity = null
+                element.style.backgroundColor = null
+            }
+        })
+
+        element.addEventListener('dragover', (e) => {
+            e.preventDefault()
+        })
+
+        element.addEventListener('drop', (e) => {
+            if (element.file.type != 'd' || element == dragStart) {
+                return
+            }
+
+            for (const item of this.selectedItems) {
+                if (item == element) {
+                    continue
+                }
+
+                this.move(item.file, element.file)
+                .then((err) => {
+                    if (err) {
+                        return
+                    }
+
+                    console.log(this.cachedDirectories)
+
+                    this.cachedDirectories[normalizePath(this.currentDirectory + '/' + element.file.name + '/')] = null
+                    this.listFiles(this.currentDirectory, false, false)
+
+                })
+            }
+        })
+
         element.addEventListener('click', () => {
             switch (keyState) {
                 case 0:
@@ -508,8 +671,8 @@ window.FileExplorer = class FileExplorer {
                 case 33:
                 case 16:
                     {
-                        if (this.selectedItems.length < 0) {
-                            return
+                        if (this.selectedItems.length <= 0) {
+                            break
                         }
     
                         const first = this.selectedItems[0]
@@ -568,10 +731,42 @@ window.FileExplorer = class FileExplorer {
             }
 
             const element = htmlElement(templates['directory'](directory))
-            const newDirectory = split.slice(0, index + 1).join('/') + '/'
+            const newDirectory = normalizePath(split.slice(0, index + 1).join('/') + '/')
 
             element.querySelector('.directory-name').addEventListener('click', () => {
                 this.listFiles(newDirectory)
+            })
+    
+            element.addEventListener('drop', (e) => {
+                for (const item of this.selectedItems) {
+                    this.move(item.file, {
+                        name: newDirectory
+                    }, true)
+                    .then((err) => {
+                        if (err) {
+                            return
+                        }
+    
+                        this.cachedDirectories[newDirectory] = null
+                        this.listFiles(this.currentDirectory, false, false)
+                    })
+                }
+            })
+
+            const name = element.querySelector('.directory-name')
+    
+            name.addEventListener('dragenter', (e) => {
+                name.style.opacity = 1
+                name.style.backgroundColor = 'rgba(90, 90, 90)'
+            })
+    
+            name.addEventListener('dragleave', (e) => {
+                name.style.opacity = null
+                name.style.backgroundColor = null
+            })
+        
+            name.addEventListener('dragover', (e) => {
+                e.preventDefault()
             })
 
             this.elements.directoryList.appendChild(element)
@@ -592,7 +787,40 @@ window.FileExplorer = class FileExplorer {
         back.addEventListener('dblclick', () => {
             this.listFiles(this.currentDirectory + '/../')
         })
+
+        back.addEventListener('drop', (e) => {
+            const split = this.currentDirectory.split('/')
+            const backDir = normalizePath(split.slice(0, split.length - 2).join('/') + '/')
+
+            for (const item of this.selectedItems) {
+                this.move(item.file, {
+                    name: '/../'
+                })
+                .then((err) => {
+                    if (err) {
+                        return
+                    }
+
+                    this.cachedDirectories[backDir] = null
+                    this.listFiles(this.currentDirectory, false, false)
+                })
+            }
+        })
+
+        back.addEventListener('dragenter', (e) => {
+            back.style.opacity = 1
+            back.style.backgroundColor = 'rgba(90, 90, 90)'
+        })
+
+        back.addEventListener('dragleave', (e) => {
+            back.style.opacity = null
+            back.style.backgroundColor = null
+        })
     
+        back.addEventListener('dragover', (e) => {
+            e.preventDefault()
+        })
+
         files.forEach(file => {
             file.date = file.date || file.modifyTime
             const element = this.addFile(file)
@@ -604,7 +832,7 @@ window.FileExplorer = class FileExplorer {
         this.updateItems()
     }
 
-    listFiles = async (directory = this.__currentDirectory, addHistory = true) => {
+    listFiles = async (directory = this.__currentDirectory, addHistory = true, useCache = true) => {
         return new Promise((resolve, reject) => {
             directory = normalizePath(directory + '/')
 
@@ -641,7 +869,7 @@ window.FileExplorer = class FileExplorer {
                 this.viewFiles()
             }
     
-            if (this.cachedDirectories[directory]) {
+            if (this.cachedDirectories[directory] && useCache) {
                 resolve()
                 callback(this.cachedDirectories[directory])
                 return
@@ -662,39 +890,113 @@ window.FileExplorer = class FileExplorer {
     }
 
     createDirectory = async (name) => {
-        const target = this.currentDirectory + '/' + name
-        return this.client.mkdir(normalizePath(target))
+        return new Promise((resolve, reject) => {
+            const target = normalizePath(this.currentDirectory + '/' + name)
+            this.client.mkdir(target)
+            .then(() => {
+                resolve()
+                print('CLIENT_CREATE_DIR_SUCCESS'.mf(target))
+            })
+            .catch((err) => {
+                resolve(err)
+                error('CLIENT_CREATE_DIR_FAIL'.mf(target, baseErrorMessage(err)))
+            })
+        })
+    }
+
+    move = async (file, folder, asbsolutePath) => {
+        const oldPath = normalizePath(this.currentDirectory + '/' + file.name)
+        const newPath = normalizePath((asbsolutePath ? '' : this.currentDirectory + '/') + folder.name + '/' + file.name)
+
+        print('FS_MOVE_FILE'.mf(oldPath, newPath))
+        return new Promise((resolve, reject) => {
+            this.client.rename(oldPath, newPath)
+            .then(() => {
+                print('FS_MOVE_FILE_SUCCESS'.mf(oldPath, newPath))
+                resolve()
+            })
+            .catch((err) => {
+                error('FS_MOVE_FILE_FAIL'.mf(oldPath, newPath, err.message))
+                resolve(err)
+            })
+        })
     }
 
     delete = async (file) => {
-        
-        const target = this.currentDirectory + '/' + file.name
+        const target = normalizePath(this.currentDirectory + '/' + file.name)
 
-        return file.type == 'd'
-            ? this.client.rmdir(target, true)
-            : this.client.delete(target)
+        print('FS_DELETE_FILE'.mf(target))
+        return new Promise((resolve, reject) => {
+            (file.type == 'd'
+                ? this.client.rmdir(target, true)
+                : this.client.delete(target))
+            .then(() => {
+                print('FS_DELETE_FILE_SUCCESS'.mf(target))
+                resolve()
+            })
+            .catch((err) => {
+                error('FS_DELETE_FILE_FAIL'.mf(target))
+                resolve(err)
+            })
+        })
     }
 
-    download = (name) => {
-        const source = normalizePath(this.currentDirectory + '/' + name)
-        const destination = os.homedir() + '/Downloads/' + name
+    createFile = async (name) => {
+        const target = normalizePath(this.currentDirectory + '/' + name)
 
-        if (!fs.existsSync(destination)) {
-            fs.writeFileSync(destination, '')
+        print('FS_CREATE_FILE'.mf(target))
+        return new Promise((resolve, reject) => {
+            this.client.put(Readable.from(['']), target)
+            .then(() => {
+                print('FS_CREATE_FILE_SUCCESS'.mf(target))
+                resolve()
+            })
+            .catch((err) => {
+                error('FS_CREATE_FILE_FAIL'.mf(target, baseErrorMessage(err)))
+                resolve(err)
+            })
+        })
+    }
+
+    download = (file) => {
+        const source = normalizePath(this.currentDirectory + '/' + file.name)
+        const destination = os.homedir() + '/Downloads/' + file.name
+
+        const progressStream = progress({
+            length: file.size,
+            time: 100
+        })
+
+        progressStream.on('progress', (progress) => {
+            console.log(progress.percentage.toFixed(2))
+        })
+
+        const outStream = fs.createWriteStream(destination)
+        progressStream.pipe(outStream)
+
+        const download = {
+            file,
+            progressStream,
+            end: () => {
+                outStream.end()
+            }
         }
 
-        return this.client.get(source, destination)
+        window.addDownload(download)
+
+        this.client.get(source, progressStream, {autoClose: false})
+        .then(() => {})
     }
 
-    open = async (name) => {
-        const source = normalizePath(this.currentDirectory + '/' + name)
+    open = async (file) => {
+        const source = normalizePath(this.currentDirectory + '/' + file.name)
         const folder = './data/temp/'
 
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder)
         }
 
-        const destination = folder + name
+        const destination = folder + file.name
 
         if (!fs.existsSync(destination)) {
             fs.writeFileSync(destination, '')

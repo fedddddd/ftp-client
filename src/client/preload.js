@@ -1,6 +1,7 @@
 const { 
     BrowserWindow,
-    dialog
+    dialog,
+    Notification
 }                  = require('@electron/remote')
 const fs           = require('fs')
 const path         = require('path')
@@ -66,8 +67,6 @@ const createClient = (type) => {
                 client.original = {}
                 client._get = client.get
                 client._put = client.put
-                client.get = client.fastGet
-                client.put = client.fastPut
                 client.currentDir = client.cwd
                 client.getOS = async () => {
                     const resultRegex = /Distributor ID:(?: +|\t+)(.+)/g

@@ -17,5 +17,19 @@
 	"FS_REOPEN_FILE": "Reopen file",
 	"FS_REDOWNLOAD_FILE": "Redownload file",
 	"SL_DELETE_SERVER": "Delete server",
-	"SL_DELETE_SERVER_FORMAT": "Are you sure you want to delete ^2%s^7?"
+	"SL_DELETE_SERVER_FORMAT": "Are you sure you want to delete ^2%s^7?",
+	"CLIENT_CREATE_DIR_FAIL": "^1Creation of directory ^2%s^1 failed: %s",
+	"CLIENT_CREATE_DIR_SUCCESS": "Creation of directory ^2%s^7 successful",
+	"FS_CREATE_FILE": "Creation file ^2%s^7...",
+	"FS_CREATE_FILE_SUCCESS": "Creation of file ^2%s^7 successful",
+	"FS_CREATE_FILE_FAIL": "^1Creation of file ^2%s^1 failed: %s",
+	"FS_RENAME_FILE": "Renaming file ^2%s^7 to ^2%s^7...",
+	"FS_RENAME_SUCCESS": "Renaming of file ^2%s^7 to ^2%s^7 successful",
+	"FS_RENAME_FAIL": "^1Renaming of file ^2%s^7 to ^2%s^1 failed: %s",
+	"FS_MOVE_FILE": "Moving file ^2%s^7 to ^2%s^7...",
+	"FS_MOVE_FILE_SUCCESS": "Moving of file ^2%s^7 to ^2%s^7 successful",
+	"FS_MOVE_FILE_FAIL": "^1Moving of file ^2%s^7 to ^2%s^1 failed: %s",
+	"FS_DELETE_FILE": "Deleting file ^2%s^7...",
+	"FS_DELETE_FILE_SUCCESS": "Deletion of file ^2%s^7 successful",
+	"FS_DELETE_FILE_FAIL": "^1Deletion of file ^2%s^7 failed: %s"
 }

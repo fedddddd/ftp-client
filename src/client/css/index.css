@@ -7,6 +7,10 @@ body {
     font-family: 'Segoe UI Emoji', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+::selection {
+    background: rgb(90, 90, 90);
+}
+
 .main-window {
     background-color: rgb(50, 50, 50);
     height: 100%;
@@ -89,6 +93,8 @@ body {
 
 .server-list-wrap {
     flex-grow: 1;
+    display: flex;
+    flex-flow: column;
     border-radius: 6px;
     padding: 10px;
     background-color: rgb(30, 30, 30);
@@ -103,6 +109,15 @@ body {
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     display: flex;
+    align-items: center;
+    background-color: rgb(30, 30, 30);
+}
+
+.server-list-footer {
+    border-top: 2px solid rgb(60, 60, 60);
+    padding-top: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
     align-items: center;
     background-color: rgb(30, 30, 30);
 }
@@ -534,7 +549,7 @@ option {
 }
 
 .servers {
-    height: calc(100% - 40px);
+    flex-grow: 1;
     flex-flow: column;
 }
 
@@ -788,4 +803,8 @@ option {
     align-items: center;
     border-radius: 6px;
     font-size: 13px;
+}
+
+.no-child-pointer-events * {
+    pointer-events: none!important;
 }
