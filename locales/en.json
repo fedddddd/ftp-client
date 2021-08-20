@@ -31,5 +31,9 @@
 	"FS_MOVE_FILE_FAIL": "^1Moving of file ^2%s^7 to ^2%s^1 failed: %s",
 	"FS_DELETE_FILE": "Deleting file ^2%s^7...",
 	"FS_DELETE_FILE_SUCCESS": "Deletion of file ^2%s^7 successful",
-	"FS_DELETE_FILE_FAIL": "^1Deletion of file ^2%s^7 failed: %s"
+	"FS_DELETE_FILE_FAIL": "^1Deletion of file ^2%s^7 failed: %s",
+	"FS_DOWNLOAD_SPEED_ETA": "{eta} left - {speed}/s",
+	"FS_UPLOAD_FILE": "Uploading file ^2%s^7 to ^2%s^7...",
+	"FS_UPLOAD_FILE_SUCCESS": "Uploading of file ^2%s^7 to ^2%s^7 successful",
+	"FS_UPLOAD_FILE_FAIL": "^1Uploading of file ^2%s^1 to ^2%s^1 failed: %s"
 }

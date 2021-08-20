@@ -7,6 +7,7 @@ const messageBox   = require('./message-box')
 const localization = require('./localization')
 const progress     = require('progress-stream')
 const { Readable } = require("stream")
+const Throttle     = require('throttle')
 
 const normalizePath = (_path) => {
     return path.normalize(_path).replace(new RegExp(/\\/g), '/')
@@ -553,8 +554,6 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.draggable = true
-
-        var dragStart = null
         element.addEventListener('dragstart', (e) => {
             if (!this.selectedItems.find(item => item == element)) {
                 this.selectedItems = []
@@ -566,7 +565,7 @@ window.FileExplorer = class FileExplorer {
                 child.classList.add('no-child-pointer-events')
             }
 
-            dragStart = element
+            this.dragStart = element
 
             const draggedElements = document.createElement('div')
             draggedElements.setAttribute('file-drag', '')
@@ -600,7 +599,7 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.addEventListener('dragend', (e) => {
-            dragStart = null
+            this.dragStart = null
 
             Array.from(document.querySelectorAll('[file-drag]')).forEach((element) => {
                 element.remove()
@@ -611,22 +610,22 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.addEventListener('dragenter', (e) => {
-            if (element == dragStart) {
+            if (element == this.dragStart) {
                 return
             }
 
             element.style.opacity = 1
-            element.style.backgroundColor = 'rgba(90, 90, 90)'
+            element.style.backgroundColor = 'rgb(90, 90, 90)'
         })
 
         element.addEventListener('dragleave', (e) => {
-            if (element == dragStart) {
+            if (element == this.dragStart) {
                 return
             }
 
             if (this.selectedItems.find(item => item == element)) {
-                element.style.opacity = 0.5
-                element.style.backgroundColor = 'rgba(30, 30, 30)'
+                element.style.opacity = this.dragStart ? 0.5 : 1
+                element.style.backgroundColor = this.dragStart ? 'rgb(30, 30, 30)' : 'rgb(90, 90, 90)'
             } else {
                 element.style.opacity = null
                 element.style.backgroundColor = null
@@ -638,7 +637,25 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.addEventListener('drop', (e) => {
-            if (element.file.type != 'd' || element == dragStart) {
+            const folder = normalizePath(this.currentDirectory + '/' + element.file.name + '/')
+
+            if (element.file.type != 'd' || element == this.dragStart) {
+                return
+            }
+
+            if (e.dataTransfer.files.length) {
+                for (const file of e.dataTransfer.files) {
+                    const dest = normalizePath(element.file.name + '/' + file.name)
+                    this.upload(file.path, dest)
+                    .then((err) => {
+                        if (err) {
+                            return
+                        }
+
+                        this.cachedDirectories[this.currentDirectory + '/' + element.file.name + '/'] = null
+                    })
+                }
+
                 return
             }
 
@@ -653,9 +670,7 @@ window.FileExplorer = class FileExplorer {
                         return
                     }
 
-                    console.log(this.cachedDirectories)
-
-                    this.cachedDirectories[normalizePath(this.currentDirectory + '/' + element.file.name + '/')] = null
+                    this.cachedDirectories[folder] = null
                     this.listFiles(this.currentDirectory, false, false)
 
                 })
@@ -958,18 +973,34 @@ window.FileExplorer = class FileExplorer {
         })
     }
 
+    upload = (path, dest) => {
+        const destination = normalizePath(this.currentDirectory + '/' + dest)
+
+        print('FS_UPLOAD_FILE'.mf(path, destination))
+        return new Promise((resolve, reject) => {
+            this.client.put(path, destination)
+            .then(() => {
+                print('FS_UPLOAD_FILE_SUCCESS'.mf(path, destination))
+                resolve()
+            })
+            .catch((err) => {
+                error('FS_UPLOAD_FILE_FAIL'.mf(path, destination, baseErrorMessage(err)))
+                resolve(err)
+            })
+        })
+    }
+
     download = (file) => {
         const source = normalizePath(this.currentDirectory + '/' + file.name)
-        const destination = os.homedir() + '/Downloads/' + file.name
+        const desinationFolder = normalizePath(os.homedir() + '/Downloads/')
+        const destination = desinationFolder + file.name
 
         const progressStream = progress({
             length: file.size,
             time: 100
         })
 
-        progressStream.on('progress', (progress) => {
-            console.log(progress.percentage.toFixed(2))
-        })
+        //const throttleStream = new Throttle(1000)
 
         const outStream = fs.createWriteStream(destination)
         progressStream.pipe(outStream)
@@ -977,7 +1008,10 @@ window.FileExplorer = class FileExplorer {
         const download = {
             file,
             progressStream,
+            destination,
+            desinationFolder,
             end: () => {
+                progressStream.end()
                 outStream.end()
             }
         }
@@ -986,6 +1020,7 @@ window.FileExplorer = class FileExplorer {
 
         this.client.get(source, progressStream, {autoClose: false})
         .then(() => {})
+        .catch((err) => {})
     }
 
     open = async (file) => {

@@ -277,6 +277,38 @@ window.templates = {
                 </label>
             </div>
         `
+    },
+    'download-list': () => {
+        return `
+            <div class='download-list-container' download-list>
+                <div class='download-list-header'>
+                    Downloads
+                </div>
+                <div class='download-list scroll hide-scrollbar'>
+                </div>
+            </div>
+        `
+    },
+    'download': (name) => {
+        return `
+            <div class='server'>
+                <div class='left'>
+                    <i class="fas fa-file server-icon"></i>
+                    <div class='server-info'>
+                        <div class='server-name'>
+                            ${name}
+                        </div>
+                        <div class='download-progress-wrap'>
+                            <div class='download-progress'></div>
+                        </div>
+                        <div class='download-speed'></div>
+                    </div>
+                </div>
+                <div class='right'>
+                    <i class="fas fa-times server-button click" delete-btn></i>
+                </div>
+            </div>
+        `
     }
 }
 

@@ -789,10 +789,6 @@ option {
     background-color: rgba(255, 255, 255, 20%)!important;
 }
 
-.server-sort-background:before {
-    transition: all ease-in-out 0s!important;
-}
-
 .server-sort > label div {
     z-index: 10!important;
     padding: 7px;
@@ -807,4 +803,106 @@ option {
 
 .no-child-pointer-events * {
     pointer-events: none!important;
+}
+
+.download-list-container {
+    opacity: 0;
+    overflow: hidden;
+    z-index: 1000;
+    transition: opacity ease-in-out 0.1s;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 300px;
+    display: flex;
+    flex-flow: column;
+    min-height: 50px;
+    max-height: 500px;
+    border-radius: 6px;
+    background-color: rgb(50, 50, 50);
+    box-shadow: 0 9px 19px rgba(0, 0, 0, 0.1), 0 15px 12px rgba(0, 0, 0, 0.1);
+}
+
+.download-list-header {
+    padding: 10px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    text-align: center;
+    background-color: rgb(40, 40, 40);
+}
+
+.download-list .server:last-child {
+    border-bottom: none!important;
+}
+
+.download-list .server:hover {
+    background-color: rgb(35, 35, 35);
+}
+
+.download-progress-wrap {
+    height: 5px;
+    margin-top: 5px;
+    border-radius: 6px;
+    overflow: hidden;
+    width: 100%;
+    background-color: rgb(50, 50, 50);
+}
+
+.download-progress {
+    transition: width ease-in-out 0.1s;
+    width: 0%;
+    height: 5px;
+    background-color: rgb(90, 90, 90);
+}
+
+.download-list .server {
+    display: flex;
+    flex-flow: row;
+}
+
+.download-list .server > div {
+    display: flex;
+    flex-basis: 1px;
+    flex-grow: 1;
+    align-items: center;
+    align-content: center;
+}
+
+.download-list .server .left {
+    flex-grow: 1!important;
+}
+
+.download-list .server .right {
+    flex-grow: unset!important;
+}
+
+.download-list .server-info {
+    width: 100%;
+    padding-right: 10px;
+}
+
+.download-list .server-button {
+    opacity: 0;
+    display: block!important;
+}
+
+.download-list .server:hover .server-button {
+    opacity: 1;
+    display: block!important;
+}
+
+.download-speed {
+    font-size: 13px;
+}
+
+.download-list-button {
+    width: 30px;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.download-list-button .server-list-button {
+    margin-right: 0px!important;
 }

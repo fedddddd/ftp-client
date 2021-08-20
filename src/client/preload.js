@@ -1,28 +1,28 @@
 const { 
     BrowserWindow,
     dialog,
-    Notification
+    Notification,
+    shell
 }                  = require('@electron/remote')
 const fs           = require('fs')
 const path         = require('path')
 const moment       = require('moment')
+const filesize     = require('filesize')
+const duration     = require('humanize-duration')
+const openExplorer = require('open-file-explorer')
 
 const templates    = require('./js/templates')
 const FileExplorer = require('./js/file-explorer')
 const messageBox   = require('./js/message-box')
 const localization = require('./js/localization')
 const io           = require('../utils/io')
+const createClient = require('./js/client')
 
 const authenticationTypes = ['ask', 'password', 'key']
 const protocols = ['ftp', 'sftp']
 
 const baseConfig = {
     servers: []
-}
-
-const clientTypes = {
-    ftp: require('ftp'),
-    sftp: require('ssh2-sftp-client')
 }
 
 io.createDirectory('./data/config/')
@@ -57,106 +57,6 @@ const osIcons = {
 
 const getOSIcon = (type, os) => {
     return type == 'sftp' ? osIcons[os] || osIcons['unknown'] : osIcons['ftp']
-}
-
-const createClient = (type) => {
-    switch (type) {
-        case 'sftp':
-            {
-                const client = new clientTypes.sftp()
-                client.original = {}
-                client._get = client.get
-                client._put = client.put
-                client.currentDir = client.cwd
-                client.getOS = async () => {
-                    const resultRegex = /Distributor ID:(?: +|\t+)(.+)/g
-                    
-                    return new Promise((resolve, reject) => {
-                        var resolved = false
-
-                        client.client.exec('lsb_release -i', (err, stream) => {
-                            stream.on('data', (data) => {
-                                const string = data.toString()
-                                const match = resultRegex.exec(string)
-
-                                if (!match) {
-                                    return
-                                }
-
-                                resolved = true
-                                resolve(match[1].toLowerCase())
-                            })
-
-                            stream.on('close', () => {
-                                if (resolved) {
-                                    return
-                                }
-
-                                client.client.exec('ver', (err, stream) => {
-                                    stream.on('data', (data) => {
-                                        const string = data.toString()
-
-                                        if (!string.toLowerCase().match('microsoft')) {
-                                            resolved = true
-                                            resolve('unknown')
-                                            return
-                                        }
-
-                                        resolved = true
-                                        resolve('windows')
-                                    })
-
-                                    stream.on('close', () => {
-                                        if (resolved) {
-                                            return
-                                        }
-
-                                        resolve('unknown')
-                                    })
-                                })
-                            })
-                        })
-                    })
-                }
-
-                return client
-            }
-        case 'ftp':
-        default:
-            {
-                const client = new clientTypes.ftp()
-                client._connect = client.connect
-                client._get = client.get
-                client.currentDir = client.pwd
-                client.getOS = () => {
-                    return 'ftp'
-                }
-
-                client.get = (source, destination) => {
-                    client._get(source, (err, stream) => {
-                        if (err) {
-                            throw err
-                        }
-
-                        stream.pipe(fs.createWriteStream(destination))
-                    })
-                }
-
-                client.connect = (config) => {
-                    config.user = config.username
-
-                    return new Promise((resolve, reject) => {
-                        client.on('ready', () => {
-                            resolve()
-                        })
-
-                        client._connect(config)
-                    })
-                }
-
-                return client
-            }
-    }
 }
 
 const baseErrorMessage = (err) => {
@@ -680,6 +580,90 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('contextmenu', (e) => {
         const menu = document.querySelector('.contextmenu-container')
         menu && menu.remove()
+    })
+
+    const downloadListContainer = htmlElement(templates['download-list']())
+    const downloadList = downloadListContainer.querySelector('.download-list')
+    const downloadsButton = document.querySelector('[download-list-btn]')
+    const downloadsProgressBar = document.querySelector('[downloads-progress-bar]')
+
+    document.body.appendChild(downloadListContainer)
+
+    const downloads = []
+    const updateProgressBar = () => {
+        const totalSize = downloads.length * 100
+        const value = downloads.reduce((total, download) => total + download.progress, 0)
+        const percentage = (value / totalSize) * 100
+        
+        downloadsProgressBar.children[0].style.width = percentage + '%'
+        downloadsProgressBar.style.display = percentage < 100
+            ? null
+            : 'none'
+    }
+
+    window.addDownload = (download) => {
+        const element = htmlElement(templates['download'](download.file.name))
+        const progressBar = element.querySelector('.download-progress')
+        const deleteButton = element.querySelector('[delete-btn]')
+        const speed = element.querySelector('.download-speed')
+        const index = downloads.length
+        downloads.push(download)
+
+        deleteButton.addEventListener('click', () => {
+            element.remove()
+            download.end()
+            alignDownloadList()
+        })
+
+        download.progressStream.on('progress', (progress) => {
+            download.progress = progress.percentage
+            progressBar.style.width = parseInt(progress.percentage) + '%'
+            speed.innerText = 'FS_DOWNLOAD_SPEED_ETA'.mf({
+                speed: filesize(progress.speed), 
+                eta: duration(progress.eta * 1000)
+            })
+
+            if (progress.remaining == 0) {
+                speed.remove()
+                progressBar.parentNode.remove()
+
+                element.style.cursor = 'pointer'
+                element.addEventListener('click', () => {
+                    shell.showItemInFolder(download.destination)
+                })
+
+                downloads.splice(index, 1)
+            }
+
+            updateProgressBar()
+        })
+
+        downloadList.prepend(element)
+        alignDownloadList()
+    }
+
+    updateProgressBar()
+
+    const alignDownloadList = () => {
+        const rect = downloadsButton.getBoundingClientRect()
+        downloadListContainer.style.left = rect.x - downloadListContainer.offsetWidth / 2
+        downloadListContainer.style.top = rect.top - downloadListContainer.offsetHeight - 30
+    }
+
+    downloadsButton.addEventListener('click', () => {
+        if (downloadListContainer.style.opacity == '1') {
+            downloadListContainer.style.opacity = 0
+            return
+        }
+
+        alignDownloadList()
+        setTimeout(() => {
+            downloadListContainer.style.opacity = 1
+        }, 0)
+    })
+
+    window.addEventListener('resize', () => {
+        alignDownloadList()
     })
 
     const connect = async (config, element) => 
