@@ -351,6 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
 
         serverList.prepend(element)
+        sortServers()
     }
 
     const textBoxes = document.querySelectorAll('[contenteditable=true]')
@@ -371,7 +372,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     var serverSort = 'date'
     const serverSortFunctions = {
         'date': (a, b) => {
-            return new Date(b.config.date) - new Date(a.config.date)
+            return new Date(b.config.lastConnection) - new Date(a.config.lastConnection)
         },
         'name': (a, b) => {
             return a.innerText.localeCompare(b.innerText)
@@ -408,6 +409,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const searchBox = document.querySelector('[search-server]')
     searchBox.addEventListener('input', sortServers)
+
+    sortServers()
 
     const connectButton = document.querySelector('[connect-btn]')
     connectButton.addEventListener('click', async () => {
