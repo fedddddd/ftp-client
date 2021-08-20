@@ -120,39 +120,57 @@ const error = (text) => {
 
 const validateServer = (server) => {
     if (!server.host) {
-        return 'Host cannot be empty'
+        return 'MENU_HOST_CANNOT_BE_EMPTY'.t
     }
 
-    if (!authenticationTypes.includes(server.authtype)) {
-        return 'Invalid authentication type'
+    if (!authenticationTypes.includes(server.authtype) || server.protocol != 'sftp' && server.authtype == 'key') {
+        return 'MENU_INVALID_AUTH_TYPE'.t
     }
     
     if (!protocols.includes(server.protocol)) {
-        return 'Invalid protocol'
-    }
-
-    if (server.protocol != 'sftp' && server.authtype == 'key') {
-        return 'Invalid Authentication type'
+        return 'MENU_INVALID_PROTOCOL'.t
     }
 
     if (server.authtype == 'key' && !server.key) {
-        return 'Private key cannot be empty'
+        return 'MENU_PRIVATE_KEY_CANNOT_BE_EMPTY'.t
     }
 
     if (server.authtype == 'key' && !fs.existsSync(server.key)) {
-        return 'Private key file does not exist'
+        return 'MENU_PRIVATE_KEY_NOT_EXISTS'.t
     }
 
     if (!server.username) {
-        return 'Username cannot be empty'
+        return 'MENU_USERNAME_CANNOT_BE_EMPTY'.t
     }
 
     if (server.authtype == 'password' && !server.password) {
-        return 'Password cannot be empty'
+        return 'MENU_PASSWORD_CANNOT_BE_EMPTY'.t
     }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const updateTranslations = (e) => {
+        Array.from(e.querySelectorAll('[t]')).forEach(element => {
+            element.innerText = element.getAttribute('t').t
+        })
+
+        Array.from(e.querySelectorAll('[data-text]')).forEach(element => {
+            const text = element.getAttribute('data-text').t
+            element.setAttribute('data-text', text)
+        })
+
+        Array.from(e.querySelectorAll('[data-placeholder]')).forEach(element => {
+            const text = element.getAttribute('data-placeholder').t
+            element.setAttribute('placeholder', text)
+        })
+    }
+
+    document.addEventListener('DOMNodeInserted', (e) => {
+        updateTranslations(e.target.parentNode)
+    })
+
+    updateTranslations(document)
+
     const closeButton = document.querySelector('.button-red')
     const minimizeButton = document.querySelector('.button-yellow')
     const maximizeButton = document.querySelector('.button-green')
@@ -175,18 +193,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (config.authtype == 'ask') {
             messageBox({
-                title: 'Insert password',
+                title: 'MENU_INSERT_PASSWORD'.t,
                 buttons: {
-                    yes: 'Connect',
-                    no: 'Cancel'
+                    yes: 'CONNECT'.t,
+                    no: 'CANCEL'.t
                 },
                 inputs: [
                     [
                         {
-                            name: 'Password',
+                            name: 'PASSWORD'.t,
                             type: 'password',
                             id: 'password',
-                            placeholder: 'Password'
+                            placeholder: 'PASSWORD'.t
                         }
                     ]
                 ]
@@ -208,7 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addServer = (config) => {
         const name = config.name || config.host
         const os = knownHosts.find(config.host)
-        const osText = `${os ? `${os}, ${config.protocol}` : config.protocol}`
+        const osText = `${os ? `${config.protocol}, ${os}` : config.protocol}`
         const date = moment(config.lastConnection).fromNow()
         const element = htmlElement(templates['server'](name, osText, getOSIcon(config.protocol, os), date))
         element.config = config
@@ -234,11 +252,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         editButton.addEventListener('click', async () => {
             const box = await messageBox({
-                title: 'Edit server',
+                title: 'MENU_EDIT_SERVER'.t,
                 text: templates['addserver'](),
                 buttons: {
-                    yes: 'Ok',
-                    no: 'Cancel'
+                    yes: 'OK'.t,
+                    no: 'CANCEL'.t
                 }
             }, (result) => {
                 if (!result) {
@@ -394,11 +412,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const connectButton = document.querySelector('[connect-btn]')
     connectButton.addEventListener('click', async () => {
         const box = await messageBox({
-            title: 'Connect to server',
+            title: 'MENU_CONNECT_SERVER'.t,
             text: templates['connect'](),
             buttons: {
-                yes: 'Add',
-                no: 'Cancel'
+                yes: 'CONNECT'.t,
+                no: 'CANCEL'.t
             }
         }, (result) => {
             if (!result) {
@@ -470,11 +488,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addServerButton = document.querySelector('[add-server-btn]')
     addServerButton.addEventListener('click', async () => {
         const box = await messageBox({
-            title: 'Add server',
+            title: 'MENU_ADD_SERVER'.t,
             text: templates['addserver'](),
             buttons: {
-                yes: 'Add',
-                no: 'Cancel'
+                yes: 'ADD'.t,
+                no: 'CANCEL'.t
             }
         }, (result) => {
             errorText.innerText = null
@@ -594,7 +612,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalSize = downloads.length * 100
         const value = downloads.reduce((total, download) => total + download.progress, 0)
         const percentage = (value / totalSize) * 100
-        
+
         downloadsProgressBar.children[0].style.width = percentage + '%'
         downloadsProgressBar.style.display = percentage < 100
             ? null
@@ -687,7 +705,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const icon = element.querySelector('.server-icon')
             const osTextEl = element.querySelector('.server-os')
 
-            const osText = `${os ? `${os}, ${config.protocol}` : config.protocol}`
+            const osText = `${os ? `${config.protocol}, ${os}` : config.protocol}`
 
             icon.className = `${getOSIcon(config.protocol, os)} server-icon`
             osTextEl.innerText = osText

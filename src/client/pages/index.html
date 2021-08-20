@@ -23,17 +23,17 @@
                     <div class="server-list-wrap">
                         <div class="server-list-header">
                             <div class="search-box-wrap">
-                                <div class="search-box" contenteditable="true" search-server placeholder="Search server..."></div>
+                                <div class="search-box" contenteditable="true" search-server data-placeholder="SEARCH_SERVER"></div>
                             </div>
                             <div class='server-sort'>
                                 <label>
                                     <input type='radio' class='server-sort-name' name='server-sort' server-name-sort>
                                     <div class='server-sort-background'>&nbsp;</div>
-                                    <div data-text='Name'>&nbsp;</div>
+                                    <div data-text='NAME'>&nbsp;</div>
                                 </label>
                                 <label>
                                     <input type='radio' name='server-sort' checked='true' server-date-sort>
-                                    <div data-text='Date'>&nbsp;</div>
+                                    <div data-text='DATE'>&nbsp;</div>
                                 </label>
                             </div>
                             <i class="fas fa-link server-list-button click" connect-btn></i>
@@ -70,11 +70,11 @@
                             <div class="explorer-header">
                                 <div class="file left-right-container no-border">
                                     <div class="left">
-                                        <div class="file-name click" sort-name>Filename</div>
+                                        <div class="file-name click" sort-name t="FILENAME"></div>
                                     </div>
                                     <div class="right">
-                                        <div class="file-size click" sort-size>Size</div>
-                                        <div class="file-date click" sort-date>Last modified</div>
+                                        <div class="file-size click" sort-size t="SIZE"></div>
+                                        <div class="file-date click" sort-date t="LAST_MODIFIED"></div>
                                     </div>
                                 </div>
                             </div>

@@ -292,7 +292,7 @@ window.FileExplorer = class FileExplorer {
                 const options = [
                     [
                         {
-                            text: 'Open',
+                            text: 'MENU_OPEN'.t,
                             icon: '',
                             callback: () => {
                                 const file = this.rightClickedItem.file
@@ -304,7 +304,7 @@ window.FileExplorer = class FileExplorer {
                             }
                         },
                         {
-                            text: 'Download',
+                            text: 'MENU_DOWNLOAD'.t,
                             icon: 'fa-download',
                             callback: () => {
                                 for (const item of this.selectedItems) {
@@ -315,23 +315,23 @@ window.FileExplorer = class FileExplorer {
                     ],
                     [
                         {
-                            text: 'Create new directory',
+                            text: 'MENU_CREATE_DIR'.t,
                             icon: 'fa-folder',
                             callback: async () => {
                                 menu.remove()
     
                                 const box = await messageBox({
-                                    title: 'Create new directory',
+                                    title: 'MENU_CREATE_DIR'.t,
                                     buttons: {
-                                        yes: 'Create',
-                                        no: 'Cancel'
+                                        yes: 'CREATE'.t,
+                                        no: 'CANCEL'.t
                                     },
                                     inputs: [
                                         [
                                             {
                                                 type: 'text',
                                                 id: 'dirname',
-                                                name: 'Directory name'
+                                                name: 'DIRECTORY_NAME'.t
                                             }
                                         ]
                                     ]
@@ -342,12 +342,12 @@ window.FileExplorer = class FileExplorer {
     
                                     const dirname = inputs.dirname
                                     if (!dirname) {
-                                        box.error('Invalid directory name')
+                                        box.error('MENU_INVALID_DIR_NAME'.t)
                                         return true
                                     }
     
                                     if (dirname.match(/(\\|\/)/g)) {
-                                        box.error('Directory name cannot contain the following characters: \\, /')
+                                        box.error('MENU_DIRNAME_INVALID_CHARS'.mf('\\, /'))
                                         return true
                                     }
     
@@ -363,23 +363,23 @@ window.FileExplorer = class FileExplorer {
                             }
                         },
                         {
-                            text: 'Create new directory and enter it',
+                            text: 'MENU_CREATE_DIR_ENTER'.t,
                             icon: 'fa-folder-open',
                             callback: async () => {
                                 menu.remove()
     
                                 const box = await messageBox({
-                                    title: 'Create new directory and enter it',
+                                    title: 'MENU_CREATE_DIR_ENTER'.t,
                                     buttons: {
-                                        yes: 'Create',
-                                        no: 'Cancel'
+                                        yes: 'CREATE'.t,
+                                        no: 'CANCEL'.t
                                     },
                                     inputs: [
                                         [
                                             {
                                                 type: 'text',
                                                 id: 'dirname',
-                                                name: 'Directory name'
+                                                name: 'DIRECTORY_NAME'.t
                                             }
                                         ]
                                     ]
@@ -390,12 +390,12 @@ window.FileExplorer = class FileExplorer {
     
                                     const dirname = inputs.dirname
                                     if (!dirname) {
-                                        box.error('Invalid directory name')
+                                        box.error('MENU_INVALID_DIR_NAME'.t)
                                         return true
                                     }
     
                                     if (dirname.match(/(\\|\/)/g)) {
-                                        box.error('Directory name cannot contain the following characters: \\, /')
+                                        box.error('MENU_DIRNAME_INVALID_CHARS'.mf('\\, /'))
                                         return true
                                     }
     
@@ -411,23 +411,23 @@ window.FileExplorer = class FileExplorer {
                             }
                         },
                         {
-                            text: 'Create new file',
+                            text: 'MENU_CREATE_FILE'.t,
                             icon: 'fa-edit',
                             callback: async () => {
                                 menu.remove()
     
                                 const box = await messageBox({
-                                    title: 'Create new file',
+                                    title: 'MENU_CREATE_FILE'.t,
                                     buttons: {
-                                        yes: 'Create',
-                                        no: 'Cancel'
+                                        yes: 'CREATE'.t,
+                                        no: 'CANCEL'.t
                                     },
                                     inputs: [
                                         [
                                             {
                                                 type: 'text',
                                                 id: 'filename',
-                                                name: 'File name'
+                                                name: 'FILENAME'.t
                                             }
                                         ]
                                     ]
@@ -438,17 +438,17 @@ window.FileExplorer = class FileExplorer {
     
                                     const filename = inputs.filename
                                     if (!filename) {
-                                        box.error('Invalid file name')
+                                        box.error('MENU_INVALID_FILENAME'.t)
                                         return true
                                     }
     
                                     if (filename.match(/(\\|\/)/g)) {
-                                        box.error('File name cannot contain the following characters: \\, /')
+                                        box.error('MENU_FILENAME_INVALID_CHARS'.mf('\\, /'))
                                         return true
                                     }
 
                                     if (this.currentFiles.find(file => file.type != 'd' && file.name == filename)) {
-                                        box.error('File already exists')
+                                        box.error('MENU_FILE_ALREADY_EXISTS'.t)
                                         return true
                                     }
     
@@ -464,7 +464,7 @@ window.FileExplorer = class FileExplorer {
                             }
                         },
                         {
-                            text: 'Refresh',
+                            text: 'MENU_REFRESH'.t,
                             icon: 'fa-sync-alt',
                             callback: () => {
                                 this.cachedDirectories[this.currentDirectory] = null
@@ -474,7 +474,7 @@ window.FileExplorer = class FileExplorer {
                     ],
                     [
                         {
-                            text: 'Delete',
+                            text: 'MENU_DELETE'.t,
                             icon: 'fa-trash',
                             callback: () => {
                                 for (const item of this.selectedItems) {
@@ -484,7 +484,7 @@ window.FileExplorer = class FileExplorer {
                             }
                         },
                         {
-                            text: 'Rename',
+                            text: 'MENU_RENAME'.t,
                             icon: 'fa-tag'
                         }
                     ],
@@ -1051,8 +1051,8 @@ window.FileExplorer = class FileExplorer {
         
                     messageBoxOpen = true
                     messageBox({
-                        title: 'FS_FILE_CHANGED'.t,
-                        text: `A previously opened file has changed.<br>Filename:\t\t${path.basename(destination)}<br>Remote path: ${source}`
+                        title: 'FS_FILE_CHANGED_TITLE'.t,
+                        text: 'FS_FILE_CHANGED'.mf(path.basename(destination), source).cc
                     }, (result) => {
                         messageBoxOpen = false
         

@@ -103,35 +103,35 @@ window.templates = {
         return `
             <div class='left-right-container'>
                 <div class='left server-settings'>
-                    <div>Name</div>
-                    <div>Protocol</div>
-                    <div>Host</div>
+                    <div t="NAME">Name</div>
+                    <div t="PROTOCOL">Protocol</div>
+                    <div t="HOST">Host</div>
                 </div>
                 <div class='right server-settings'>
-                    <input class='form' input-name type='text' placeholder='(optional)'>
+                    <input class='form' input-name type='text' data-placeholder="FORM_OPTIONAL">
                     <select name='Protocol' input-protocol class='form select'>
-                        <option value="ftp">FTP</option>
-                        <option value="sftp">SFTP</option>
+                        <option value="ftp" t="FTP"></option>
+                        <option value="sftp" t="SFTP"></option>
                     </select>
-                    <input class='form' type='text' input-host placeholder='1.1.1.1'>
+                    <input class='form' type='text' input-host data-placeholder="HOST_EXAMPLE">
                 </div>
             </div>
             <div class='line'></div>
             <div class='left-right-container'>
                 <div class='left server-settings'>
-                    <div>Authentication type</div>
+                    <div t="AUTHENTICATION_TYPE"></div>
                 </div>
                 <div class='right server-settings'>
                     <select name='Authentication type' input-auth-type class='form select'>
-                        <option value="password">Password</option>
-                        <option value="ask">Ask password</option>
-                        <option value="key" key-option>Private key</option>
+                        <option value="password" t="PASSWORD"></option>
+                        <option value="ask" t="ASK_PASSWORD"></option>
+                        <option value="key" key-option t="PRIVATE_KEY"></option>
                     </select>
-                    <input class='form' type='text' input-username placeholder='Username'>
-                    <input class='form' type='password' input-password placeholder='Password'>
+                    <input class='form' type='text' input-username data-placeholder="USERNAME">
+                    <input class='form' type='password' input-password data-placeholder="PASSWORD">
                     <div class='server-settings-key'>
-                        <input type='text' input-key placeholder='Key file'>
-                        <div class='server-settings-browse-btn' browse-btn>Browse</div>
+                        <input type='text' input-key data-placeholder="KEY_FILE">
+                        <div class='server-settings-browse-btn' browse-btn t="BROWSE"></div>
                     </div>
                 </div>
             </div>
@@ -141,32 +141,32 @@ window.templates = {
         return `
             <div class='left-right-container'>
                 <div class='left server-settings'>
-                    <div>Protocol</div>
-                    <div>Host</div>
+                    <div t="PROTOCOL"></div>
+                    <div t="HOST"></div>
                 </div>
                 <div class='right server-settings'>
                     <select name='Protocol' input-protocol class='form select'>
-                        <option value="ftp">FTP</option>
-                        <option value="sftp">SFTP</option>
+                        <option value="ftp" t="FTP"></option>
+                        <option value="sftp" t="SFTP"></option>
                     </select>
-                    <input class='form' type='text' input-host placeholder='1.1.1.1'>
+                    <input class='form' type='text' input-host data-placeholder="HOST_EXAMPLE">
                 </div>
             </div>
             <div class='line'></div>
             <div class='left-right-container'>
                 <div class='left server-settings'>
-                    <div>Authentication type</div>
+                    <div t="AUTHENTICATION_TYPE"></div>
                 </div>
                 <div class='right server-settings'>
                     <select name='Authentication type' input-auth-type class='form select'>
-                        <option value="password">Password</option>
-                        <option value="key" key-option>Private key</option>
+                        <option value="password" t="PASSWORD"></option>
+                        <option value="key" key-option t="PRIVATE_KEY"></option>
                     </select>
-                    <input class='form' type='text' input-username placeholder='Username'>
-                    <input class='form' type='password' input-password placeholder='Password'>
+                    <input class='form' type='text' input-username data-placeholder="USERNAME">
+                    <input class='form' type='password' input-password data-placeholder="PASSWORD">
                     <div class='server-settings-key'>
-                        <input type='text' input-key placeholder='Key file'>
-                        <div class='server-settings-browse-btn' browse-btn>Browse</div>
+                        <input type='text' input-key data-placeholder="KEY_FILE">
+                        <div class='server-settings-browse-btn' browse-btn t="BROWSE"></div>
                     </div>
                 </div>
             </div>
@@ -232,7 +232,7 @@ window.templates = {
                         </div>
                     <div class="right">
                         <div class="search-box-wrap file-search">
-                            <div class="search-box" contenteditable="true" search-file placeholder="Search file..."></div>
+                            <div class="search-box" contenteditable="true" search-file data-placeholder="SEARCH_FILE"></div>
                         </div>
                     </div>
                 </div>
@@ -241,11 +241,11 @@ window.templates = {
                     <div class="explorer-header">
                         <div class="file left-right-container no-border">
                             <div class="left">
-                                <div class="file-name click" sort-name>Filename</div>
+                                <div class="file-name click" sort-name t="FILENAME"></div>
                             </div>
                             <div class="right">
-                                <div class="file-size click" sort-size>Size</div>
-                                <div class="file-date click" sort-date>Last modified</div>
+                                <div class="file-size click" sort-size t="SIZE">Size</div>
+                                <div class="file-date click" sort-date t="LAST_MODIFIED"></div>
                             </div>
                         </div>
                     </div>
@@ -266,14 +266,14 @@ window.templates = {
                     <div class='radio-button-container'>
                         <div class='radio-button'></div>
                     </div>
-                    <div>${'FS_REDOWNLOAD_FILE'.t}</div>
+                    <div t="FS_REDOWNLOAD_FILE"></div>
                 </label>
                 <label class="radio-container">
                     <input type="radio" value='reopen' name="action">
                     <div class='radio-button-container'>
                         <div class='radio-button'></div>
                     </div>
-                    <div>${'FS_REOPEN_FILE'.t}</div>
+                    <div t="FS_REOPEN_FILE"></div>
                 </label>
             </div>
         `
@@ -281,9 +281,7 @@ window.templates = {
     'download-list': () => {
         return `
             <div class='download-list-container' download-list>
-                <div class='download-list-header'>
-                    Downloads
-                </div>
+                <div class='download-list-header' t="Transfers"></div>
                 <div class='download-list scroll hide-scrollbar'>
                 </div>
             </div>
