@@ -144,13 +144,15 @@ const createContextMenu = (sections) => {
             continue
         }
 
-        const _section = htmlElement(templates['contextmenu-section']())
-        menu.appendChild(_section)
+        const sectionElement = htmlElement(templates['contextmenu-section']())
 
         for (const entry of section) {
-            const _entry = htmlElement(templates['contextmenu-entry'](entry.text, entry.icon))
+            if (typeof entry.show == 'function' && !entry.show()) {
+                continue
+            }
 
-            _entry.addEventListener('click', () => {
+            const entryElement = htmlElement(templates['contextmenu-entry'](entry.text, entry.icon))
+            entryElement.addEventListener('click', () => {
                 if (typeof entry.callback == 'function') {
                     entry.callback()
                 }
@@ -158,7 +160,11 @@ const createContextMenu = (sections) => {
                 container.remove()
             })
 
-            _section.appendChild(_entry)
+            sectionElement.appendChild(entryElement)
+        }
+
+        if (sectionElement.children.length) {
+            menu.appendChild(sectionElement)
         }
     }
 
@@ -294,8 +300,12 @@ window.FileExplorer = class FileExplorer {
                         {
                             text: 'MENU_OPEN'.t,
                             icon: 'fa-external-link-square-alt',
+                            show: () => {
+                                return this.rightClickedItem || this.selectedItems[0]
+                            },
                             callback: () => {
-                                const file = this.rightClickedItem.file
+                                const item = this.rightClickedItem || this.selectedItems[0]
+                                const file = item.file
                                 const dir = this.currentDirectory + '/' + file.name + '/'
                                 
                                 file.type == '-'
@@ -306,6 +316,9 @@ window.FileExplorer = class FileExplorer {
                         {
                             text: 'MENU_DOWNLOAD'.t,
                             icon: 'fa-download',
+                            show: () => {
+                                return this.selectedItems.length
+                            },
                             callback: () => {
                                 for (const item of this.selectedItems) {
                                     this.download(item.file)
@@ -346,8 +359,8 @@ window.FileExplorer = class FileExplorer {
                                         return true
                                     }
     
-                                    if (dirname.match(/(\\|\/)/g)) {
-                                        box.error('MENU_DIRNAME_INVALID_CHARS'.mf('\\, /'))
+                                    if (dirname.match(/(\\|\/|\:|\*|\?|"|<|>|\|)/g)) {
+                                        box.error('MENU_DIRNAME_INVALID_CHARS'.mf('\\ / : * ? " < > |'))
                                         return true
                                     }
     
@@ -394,8 +407,8 @@ window.FileExplorer = class FileExplorer {
                                         return true
                                     }
     
-                                    if (dirname.match(/(\\|\/)/g)) {
-                                        box.error('MENU_DIRNAME_INVALID_CHARS'.mf('\\, /'))
+                                    if (dirname.match(/(\\|\/|\:|\*|\?|"|<|>|\|)/g)) {
+                                        box.error('MENU_DIRNAME_INVALID_CHARS'.mf('\\ / : * ? " < > |'))
                                         return true
                                     }
     
@@ -442,8 +455,8 @@ window.FileExplorer = class FileExplorer {
                                         return true
                                     }
     
-                                    if (filename.match(/(\\|\/)/g)) {
-                                        box.error('MENU_FILENAME_INVALID_CHARS'.mf('\\, /'))
+                                    if (filename.match(/(\\|\/|\:|\*|\?|"|<|>|\|)/g)) {
+                                        box.error('MENU_FILENAME_INVALID_CHARS'.mf('\\ / : * ? " < > |'))
                                         return true
                                     }
 
@@ -476,8 +489,13 @@ window.FileExplorer = class FileExplorer {
                         {
                             text: 'MENU_DELETE'.t,
                             icon: 'fa-trash',
+                            show: () => {
+                                return this.selectedItems.length
+                            },
                             callback: () => {
                                 for (const item of this.selectedItems) {
+                                    const index = this.currentFiles.findIndex(file => file.id == item.file.id)
+                                    this.currentFiles.splice(index, 1)
                                     this.delete(item.file)
                                     item.remove()
                                 }
@@ -485,14 +503,83 @@ window.FileExplorer = class FileExplorer {
                         },
                         {
                             text: 'MENU_RENAME'.t,
-                            icon: 'fa-tag'
+                            icon: 'fa-tag',
+                            show: () => {
+                                return this.rightClickedItem || this.selectedItems[0]
+                            },
+                            callback: () => {
+                                const item = this.rightClickedItem || this.selectedItems[0]
+
+                                if (!item) {
+                                    return
+                                }
+
+                                const name = item.querySelector('.file-name')
+                                const current = name.innerText
+                                name.setAttribute('contenteditable', 'true')
+                                name.focus()
+
+                                const rename = () => {
+                                    if (name.innerText.match(/(\\|\/|\:|\*|\?|"|<|>|\|)/g) || name.innerText == '..' || item.file.name == name.innerText) {
+                                        name.innerText = current
+                                        return
+                                    }
+
+                                    this.rename({...item.file}, name.innerText)
+                                    item.file.name = name.innerText
+                                }
+
+                                const removeListeners = () => {
+                                    document.removeEventListener('click', click)
+                                    document.removeEventListener('contextmenu', click)
+                                    document.removeEventListener('drag', click)
+                                    document.removeEventListener('keydown', keydown)
+                                    name.removeEventListener('keydown', nameKeydown)
+                                }
+
+                                const click = (e) => {
+                                    if (e.target == name) {
+                                        return
+                                    }
+
+                                    name.setAttribute('contenteditable', 'false')
+                                    removeListeners()
+                                    rename()
+                                }
+
+                                const nameKeydown = (e) => {
+                                    if (e.key.match(/(\\|\/|\:|\*|\?|"|<|>|\|)/g)) {
+                                        e.preventDefault()
+                                    }
+                                }
+
+                                name.addEventListener('keydown', nameKeydown)
+
+                                const keydown = (e) => {
+                                    switch (e.key) {
+                                        case 'Escape':
+                                            name.setAttribute('contenteditable', 'false')
+                                            name.innerText = current
+                                            removeListeners()
+                                            break
+                                        case 'Enter':
+                                            name.setAttribute('contenteditable', 'false')
+                                            removeListeners()
+                                            rename()
+                                            break
+                                    }
+                                }
+
+                                setTimeout(() => {
+                                    document.addEventListener('click', click)
+                                    document.addEventListener('drag', click)
+                                    document.addEventListener('contextmenu', click)
+                                    document.addEventListener('keydown', keydown)
+                                }, 0)
+                            }
                         }
                     ],
                 ]
-    
-                if (!this.rightClickedItem) {
-                    options[0] = null
-                }
     
                 const menu = createContextMenu(options)
 
@@ -657,7 +744,7 @@ window.FileExplorer = class FileExplorer {
                             return
                         }
 
-                        this.cachedDirectories[this.currentDirectory + '/' + element.file.name + '/'] = null
+                        this.cachedDirectories[normalizePath(this.currentDirectory + '/' + element.file.name + '/')] = null
                     })
                 }
 
@@ -924,6 +1011,24 @@ window.FileExplorer = class FileExplorer {
         })
     }
 
+    rename = async (file, name) => {
+        const oldPath = normalizePath(this.currentDirectory + '/' + file.name)
+        const newPath = normalizePath(this.currentDirectory + '/' + name)
+
+        print('FS_RENAME_FILE'.mf(oldPath, newPath))
+        return new Promise((resolve, reject) => {
+            this.client.rename(oldPath, newPath)
+            .then(() => {
+                print('FS_RENAME_FILE_SUCCESS'.mf(oldPath, newPath))
+                resolve()
+            })
+            .catch((err) => {
+                error('FS_RENAME_FILE_FAIL'.mf(oldPath, newPath, err.message))
+                resolve(err)
+            })
+        })
+    }
+
     move = async (file, folder, asbsolutePath) => {
         const oldPath = normalizePath(this.currentDirectory + '/' + file.name)
         const newPath = normalizePath((asbsolutePath ? '' : this.currentDirectory + '/') + folder.name + '/' + file.name)
@@ -932,11 +1037,11 @@ window.FileExplorer = class FileExplorer {
         return new Promise((resolve, reject) => {
             this.client.rename(oldPath, newPath)
             .then(() => {
-                print('FS_MOVE_FILE_SUCCESS'.mf(oldPath, newPath))
+                print('FS_MOVE_FILE_SUCCESS'.mf(oldPath))
                 resolve()
             })
             .catch((err) => {
-                error('FS_MOVE_FILE_FAIL'.mf(oldPath, newPath, err.message))
+                error('FS_MOVE_FILE_FAIL'.mf(oldPath, err.message))
                 resolve(err)
             })
         })
@@ -955,7 +1060,7 @@ window.FileExplorer = class FileExplorer {
                 resolve()
             })
             .catch((err) => {
-                error('FS_DELETE_FILE_FAIL'.mf(target))
+                error('FS_DELETE_FILE_FAIL'.mf(target, baseErrorMessage(err)))
                 resolve(err)
             })
         })
@@ -985,11 +1090,11 @@ window.FileExplorer = class FileExplorer {
         return new Promise((resolve, reject) => {
             this.client.put(path, destination)
             .then(() => {
-                print('FS_UPLOAD_FILE_SUCCESS'.mf(path, destination))
+                print('FS_UPLOAD_FILE_SUCCESS'.mf(path))
                 resolve()
             })
             .catch((err) => {
-                error('FS_UPLOAD_FILE_FAIL'.mf(path, destination, baseErrorMessage(err)))
+                error('FS_UPLOAD_FILE_FAIL'.mf(path, baseErrorMessage(err)))
                 resolve(err)
             })
         })
