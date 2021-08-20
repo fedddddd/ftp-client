@@ -80,6 +80,7 @@
 	"MENU_PASSWORD_CANNOT_BE_EMPTY": "Password cannot be empty",
 	"MENU_PRIVATE_KEY_CANNOT_BE_EMPTY": "Private key cannot be empty",
 	"MENU_PRIVATE_KEY_NOT_EXISTS": "Private key does not exist",
-	"MENU_CONNECT_SERVER": "Connect to server"
-
+	"MENU_CONNECT_SERVER": "Connect to server",
+	"MENU_EDIT_SERVER": "Edit server",
+	"OK": "Ok"
 }

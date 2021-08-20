@@ -293,7 +293,7 @@ window.FileExplorer = class FileExplorer {
                     [
                         {
                             text: 'MENU_OPEN'.t,
-                            icon: '',
+                            icon: 'fa-external-link-square-alt',
                             callback: () => {
                                 const file = this.rightClickedItem.file
                                 const dir = this.currentDirectory + '/' + file.name + '/'
@@ -495,9 +495,14 @@ window.FileExplorer = class FileExplorer {
                 }
     
                 const menu = createContextMenu(options)
-        
-                menu.style.left = e.clientX
-                menu.style.top = e.clientY
+
+                menu.style.left = e.clientX + menu.offsetWidth >= window.outerWidth
+                    ? e.clientX - menu.offsetWidth
+                    : e.clientX
+
+                menu.style.top = e.clientY + menu.offsetHeight >= window.outerHeight
+                    ? e.clientY - menu.offsetHeight
+                    : e.clientY
             }, 0)
         })
     }
