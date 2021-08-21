@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         win.setFullScreen(!win.isFullScreen())
     })
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('mousedown', (e) => {
         const menu = document.querySelector('.contextmenu-container')
 
         if (!menu || isChildOf(menu, e.target) || menu == e.target) {
@@ -685,6 +685,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         downloadListContainer.style.top = rect.top - downloadListContainer.offsetHeight - 30
     }
 
+    const hideDownloads = () => {
+        if (downloadListContainer.style.opacity != '1') {
+            return
+        }
+
+        downloadListContainer.style.opacity = 0
+        setTimeout(() => {
+            downloadListContainer.style.display = 'none'
+        }, 100)
+    }
+
     downloadsButton.addEventListener('click', () => {
         if (downloadListContainer.style.opacity == '1') {
             downloadListContainer.style.opacity = 0
@@ -692,12 +703,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 downloadListContainer.style.display = 'none'
             }, 100)
         } else {
-            downloadListContainer.style.display = null
+            downloadListContainer.style.display = ''
             alignDownloadList()
             setTimeout(() => {
                 downloadListContainer.style.opacity = 1
             }, 0)
         }
+    })
+    
+    document.addEventListener('mousedown', (e) => {
+        if (isChildOf(downloadListContainer, e.target) || downloadListContainer == e.target || e.target == downloadsButton) {
+            return
+        }
+
+        hideDownloads()
     })
 
     window.addEventListener('resize', () => {

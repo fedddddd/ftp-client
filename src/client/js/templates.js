@@ -63,11 +63,12 @@ window.templates = {
             </div>
         `
     },
-    'contextmenu-entry': (text, icon) => {
+    'contextmenu-entry': (text, leftIcon, rightIcon) => {
         return `
             <div class='contextmenu-entry vertical-align'>
-                <i class="fas ${icon} fa-1x contextmenu-icon"></i>
+                <i class="fas ${leftIcon} fa-1x contextmenu-icon"></i>
                 <div>${text}</div>
+                <i class="fas ${rightIcon} fa-1x contextmenu-right-icon contextmenu-icon"></i>
             </div>
         `
     },
@@ -222,7 +223,7 @@ window.templates = {
     },
     'explorer': () => {
         return `
-            <div class="explorer-container">
+            <div class="explorer-container" viewtype='list'>
                 <div class="explorer-bar">
                     <div class="left-right-container explorer-bar-container">
                         <div class="left explorer-left">
@@ -251,7 +252,7 @@ window.templates = {
                             </div>
                         </div>
                     </div>
-                    <div class="explorer scroll" id="explorer">
+                    <div class="explorer scroll">
                     </div>
                 </div>
             </div>

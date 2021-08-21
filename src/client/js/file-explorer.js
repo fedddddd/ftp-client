@@ -131,10 +131,6 @@ const sortFunctions = {
 }
 
 const createContextMenu = (sections) => {
-    Array.from(document.querySelectorAll('.contextmenu-container')).forEach(menu => {
-        menu.remove()
-    })
-
     const container = htmlElement(templates['contextmenu-container']())
     const menu = htmlElement(templates['contextmenu']())
     container.appendChild(menu)
@@ -151,14 +147,56 @@ const createContextMenu = (sections) => {
                 continue
             }
 
-            const entryElement = htmlElement(templates['contextmenu-entry'](entry.text, entry.icon))
-            entryElement.addEventListener('click', () => {
-                if (typeof entry.callback == 'function') {
-                    entry.callback()
-                }
+            const entryElement = htmlElement(templates['contextmenu-entry'](entry.text, entry.icon, entry.rightIcon))
 
-                container.remove()
-            })
+            if (typeof entry.sub == 'object') {
+                entryElement.addEventListener('mouseenter', () => {
+                    const mainRect = menu.getBoundingClientRect()
+                    const entryRect = entryElement.getBoundingClientRect()
+
+                    Array.from(sectionElement.querySelectorAll('.contextmenu-container')).forEach(child => {
+                        child.remove()
+                    })
+
+                    const subMenu = createContextMenu(entry.sub)
+                    entryElement.appendChild(subMenu)
+
+                    if (mainRect.x + mainRect.width + entryElement.offsetWidth >= window.outerWidth - 10) {
+                        subMenu.style.left = -1 * subMenu.offsetWidth - 5
+                        subMenu.style.paddingRight = 25
+                    } else {
+                        subMenu.style.left = entryElement.offsetWidth
+                        subMenu.style.paddingLeft = 25
+                    }
+
+                    const delta = (entryRect.y + subMenu.offsetHeight - 10) - window.outerHeight
+                    const top = entryRect.y - mainRect.y - 10
+
+                    subMenu.style.top = delta < 0
+                        ? top
+                        : top - delta - 10
+                })
+
+                entryElement.addEventListener('mouseleave', () => {
+                    Array.from(sectionElement.querySelectorAll('.contextmenu-container')).forEach(child => {
+                        //child.remove()
+                    })
+                })
+            } else {
+                entryElement.addEventListener('click', () => {
+                    if (typeof entry.callback == 'function') {
+                        if (!entry.callback(sectionElement, entryElement)) {
+                            container.remove()
+                        }
+                    } else {
+                        container.remove()
+                    }
+                })
+            }
+
+            if (entry == section[section.length - 1]) {
+                entryElement.style.marginBottom = '0px'
+            }
 
             sectionElement.appendChild(entryElement)
         }
@@ -168,7 +206,6 @@ const createContextMenu = (sections) => {
         }
     }
 
-    document.body.appendChild(container)
     setTimeout(() => {
         container.style.opacity = 1
     }, 10)
@@ -209,7 +246,7 @@ window.FileExplorer = class FileExplorer {
         this.elements = {}
 
         this.elements.explorer = htmlElement(templates['explorer']())
-        this.elements.fileList = this.elements.explorer.querySelector('#explorer')
+        this.elements.fileList = this.elements.explorer.querySelector('.explorer')
         this.elements.explorerBar = this.elements.explorer.querySelector('.explorer-bar')
         this.elements.forwardButton = this.elements.explorerBar.querySelector('[explorer-forward-btn]')
         this.elements.backButton = this.elements.explorerBar.querySelector('[explorer-back-btn]')
@@ -315,6 +352,7 @@ window.FileExplorer = class FileExplorer {
 
         const selection = {
             start: {x: 0, y: 0},
+            maxHeight: 0,
             element: null
         }
 
@@ -326,13 +364,17 @@ window.FileExplorer = class FileExplorer {
             this.selectedItems = []
             this.updateItems()
 
-            selection.start = {x: e.clientX, y: e.clientY}
+            selection.start = {
+                x: e.offsetX, 
+                y: e.offsetY + this.elements.fileList.scrollTop,
+                maxHeight: this.elements.fileList.scrollHeight - e.offsetY - 2
+            }
 
             selection.element = htmlElement(templates['selection']())
             selection.element.style.left = selection.start.x
             selection.element.style.top = selection.start.y
 
-            document.body.appendChild(selection.element)
+            this.elements.fileList.appendChild(selection.element)
         }
 
         const mouseup = (e) => {
@@ -345,37 +387,32 @@ window.FileExplorer = class FileExplorer {
             selection.element = null
         }
         
+        const parentRect = this.elements.fileList.getBoundingClientRect()
         const mousemove = (e) => {
             if (!selection.element) {
                 return
             }
 
-            const width = e.clientX - selection.start.x
-            const height = e.clientY - selection.start.y
+            const viewtype = this.elements.explorer.getAttribute('viewtype')
+            const offset = viewtype && viewtype != 'list'
+                ? 30
+                : 0
 
-            const scrollBarWidth = this.elements.fileList.offsetWidth - this.elements.fileList.clientWidth
-
-            const maxRect = this.elements.fileList.getBoundingClientRect()
-            const maxWidth = width > 0
-                ? (maxRect.width + maxRect.x) - selection.start.x - scrollBarWidth
-                : maxRect.x - selection.start.x
-
-            const maxHeight = height > 0
-                ? (maxRect.height + maxRect.y) - selection.start.y
-                : maxRect.y - selection.start.y
+            const width = (e.clientX - parentRect.x) - selection.start.x
+            const height = (e.clientY + offset - parentRect.y) + this.elements.fileList.scrollTop - selection.start.y
 
             if (width > 0) {
-                selection.element.style.width = Math.min(maxWidth, width)
+                selection.element.style.width = width
             } else {
-                selection.element.style.width = Math.max(maxWidth, width) * -1
-                selection.element.style.left = Math.max(maxRect.x, selection.start.x + width)
+                selection.element.style.width = width * -1
+                selection.element.style.left = selection.start.x + width
             }
 
             if (height > 0) {
-                selection.element.style.height = Math.min(maxHeight, height)
+                selection.element.style.height = Math.min(selection.start.maxHeight, height)
             } else {
-                selection.element.style.height = Math.max(maxHeight, height) * -1
-                selection.element.style.top = Math.max(maxRect.y, selection.start.y + height)
+                selection.element.style.height = height * -1
+                selection.element.style.top = selection.start.y + height
             }
 
             const overlaps = (a, b) => {
@@ -403,7 +440,7 @@ window.FileExplorer = class FileExplorer {
             this.updateItems()
         }
 
-        document.addEventListener('mousedown', mousedown)
+        this.elements.fileList.addEventListener('mousedown', mousedown)
         document.addEventListener('mouseup', mouseup)
         document.addEventListener('mousemove', mousemove)
 
@@ -423,12 +460,18 @@ window.FileExplorer = class FileExplorer {
 
     initalizeContextMenu = () => {
         this.elements.fileList.addEventListener('contextmenu', (e) => {
+            Array.from(document.querySelectorAll('.contextmenu-container')).forEach(menu => {
+                menu.remove()
+            })
+
             this.rightClickedItem = e.path.find(element => {
                 if (typeof element.hasAttribute == 'function') {
                     return element.hasAttribute('file-element')
                 }
             })
     
+            const viewType = this.elements.explorer.getAttribute('viewtype')
+
             setTimeout(() => {
                 const options = [
                     [
@@ -610,14 +653,6 @@ window.FileExplorer = class FileExplorer {
                                     })
                                 })
                             }
-                        },
-                        {
-                            text: 'MENU_REFRESH'.t,
-                            icon: 'fa-sync-alt',
-                            callback: () => {
-                                this.cachedDirectories[this.currentDirectory] = null
-                                this.listFiles(this.currentDirectory, false, false)
-                            }
                         }
                     ],
                     [
@@ -714,17 +749,201 @@ window.FileExplorer = class FileExplorer {
                             }
                         }
                     ],
+                    [
+                        {
+                            text: 'MENU_SWITCH_VIEW'.t,
+                            icon: 'fa-line-columns',
+                            rightIcon: 'fa-arrow-right',
+                            sub:
+                            [
+                                [
+                                    {
+                                        text: 'MENU_LIST_VIEW'.t,
+                                        icon: !viewType || viewType == 'list' && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.elements.explorer.setAttribute('viewType', 'list')
+                                            return true
+                                        }
+                                    },
+                                    {
+                                        text: 'MENU_ICON_VIEW'.t,
+                                        icon: viewType == 'icon' && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.elements.explorer.setAttribute('viewType', 'icon')
+                                            return true
+                                        }
+                                    },
+                                    {
+                                        text: 'MENU_SMALL_ICON_VIEW'.t,
+                                        icon: viewType == 'small-icon' && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.elements.explorer.setAttribute('viewType', 'small-icon')
+                                            return true
+                                        }
+                                    }
+                                ]
+                            ]
+                        },
+                        {
+                            text: 'MENU_CHANGE_SORT'.t,
+                            icon: 'fa-sort',
+                            rightIcon: 'fa-arrow-right',
+                            sub: 
+                            [
+                                [
+                                    {
+                                        text: 'FILENAME'.t,
+                                        icon: this.sortFunction == 'name' && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.sortFunction = 'name'
+                                            this.viewFiles()
+                                            return true
+                                        }
+                                    },
+                                    {
+                                        text: 'DATE'.t,
+                                        icon: this.sortFunction == 'date' && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.sortFunction = 'date'
+                                            this.viewFiles()
+                                            return true
+                                        }
+                                    },
+                                    {
+                                        text: 'SIZE'.t,
+                                        icon: this.sortFunction == 'size' && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.sortFunction = 'size'
+                                            this.viewFiles()
+                                            return true
+                                        }
+                                    }
+                                ],
+                                [
+                                    {
+                                        text: 'DESCENDING'.t,
+                                        icon: !this.reverseSort && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.reverseSort = false
+                                            this.viewFiles()
+                                            return true
+                                        }
+                                    },
+                                    {
+                                        text: 'ASCENDING'.t,
+                                        icon: this.reverseSort && 'fa-check',
+                                        callback: (section, entry) => {
+                                            Array.from(section.querySelectorAll('.contextmenu-entry')).forEach(child => {
+                                                const icon = child.querySelector('.contextmenu-icon')
+
+                                                if (entry == child) {
+                                                    icon.classList.add('fa-check')
+                                                } else {
+                                                    icon.classList.remove('fa-check')
+                                                }
+                                            })
+
+                                            this.reverseSort = true
+                                            this.viewFiles()
+                                            return true
+                                        }
+                                    }
+                                ]
+                            ]
+                        },
+                        {
+                            text: 'MENU_REFRESH'.t,
+                            icon: 'fa-sync-alt',
+                            callback: () => {
+                                this.cachedDirectories[this.currentDirectory] = null
+                                this.listFiles(this.currentDirectory, false, false)
+                            }
+                        }
+                    ]
                 ]
     
                 const menu = createContextMenu(options)
+                document.body.appendChild(menu)
+
+                const delta = (e.clientY + menu.offsetHeight) - window.outerHeight
 
                 menu.style.left = e.clientX + menu.offsetWidth >= window.outerWidth
                     ? e.clientX - menu.offsetWidth
                     : e.clientX
 
-                menu.style.top = e.clientY + menu.offsetHeight >= window.outerHeight
-                    ? e.clientY - menu.offsetHeight
-                    : e.clientY
+                menu.style.top = delta < 0
+                    ? e.clientY
+                    : e.clientY - delta - 10
             }, 0)
         })
     }
