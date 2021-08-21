@@ -2,6 +2,8 @@
 	"CLIENT_CONNECT": "Connecting to ^2%s^7...",
 	"CLIENT_CONNECT_SUCCESS": "Connected to ^2%s",
 	"CLIENT_CONNECT_FAIL": "^1Failed to connect to ^2%s^1: %s",
+	"CLIENT_TRANSFERS_FINISHED_TITLE": "Transferes complete",
+	"CLIENT_TRANSFERS_FINISHED": "All transfers have been completed.",
 	"FS_LIST_DIRECTORY": "Listing directory ^2%s^7..",
 	"FS_LIST_DIRECTORY_SUCCESS": "Directory listing of ^2%s^7 successful",
 	"FS_LIST_DIRECTORY_FAIL": "^1Directory listing of ^2%s^1 failed: %s",

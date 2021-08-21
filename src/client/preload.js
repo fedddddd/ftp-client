@@ -650,6 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (progress.remaining == 0) {
                 speed.remove()
+                transfers.splice(index, 1)
                 progressBar.parentNode.remove()
 
                 if (transfer.type == 'download') {
@@ -659,7 +660,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     })
                 }
 
-                transfers.splice(index, 1)
+                if (transfers.length == 0) {
+                    const notification = new Notification({
+                        title: 'CLIENT_TRANSFERS_FINISHED_TITLE'.t,
+                        body: 'CLIENT_TRANSFERS_FINISHED'.t,
+                    })
+
+                    notification.show()
+                }
             }
 
             updateProgressBar()
@@ -680,13 +688,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     downloadsButton.addEventListener('click', () => {
         if (downloadListContainer.style.opacity == '1') {
             downloadListContainer.style.opacity = 0
-            return
+            setTimeout(() => {
+                downloadListContainer.style.display = 'none'
+            }, 100)
+        } else {
+            downloadListContainer.style.display = null
+            alignDownloadList()
+            setTimeout(() => {
+                downloadListContainer.style.opacity = 1
+            }, 0)
         }
-
-        alignDownloadList()
-        setTimeout(() => {
-            downloadListContainer.style.opacity = 1
-        }, 0)
     })
 
     window.addEventListener('resize', () => {
