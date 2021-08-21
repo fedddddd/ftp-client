@@ -8,9 +8,9 @@ const BrowserWindow = electron.BrowserWindow
 const createWindow = () => {
     const mainWindow = new BrowserWindow({
         frame: false,
-        fullscreen: true,
         minWidth: 1250,
         minHeight: 750,
+        backgroundColor: '#1E1E1E',
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
@@ -20,7 +20,8 @@ const createWindow = () => {
     })
 
     mainWindow.setResizable(true)
-    mainWindow.loadFile('pages/index.html')
+    mainWindow.maximize()
+    mainWindow.loadFile(path.join(__dirname, 'pages/index.html'))
 }
 
 app.whenReady().then(() => {

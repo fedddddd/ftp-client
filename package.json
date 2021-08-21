@@ -1,0 +1,36 @@
+{
+  "name": "ftp-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./src/client/index.js",
+  "scripts": {
+    "start": "electron ./src/client/index.js",
+    "package-win": "electron-packager . --platform=win32 --arch=x64 --ignore='data|.*\\.md|.*\\.git' --out=bin --overwrite",
+    "package-osx": "electron-packager . --platform=darwin --arch=x64 --ignore='data|.*\\.md|.*\\.git' --out=bin --overwrite",
+    "package-linux": "electron-packager . --platform=linux --arch=x64 --ignore='data|.*\\.md|.*\\.git' --out=bin --overwrite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fedddddd/ftp-client.git"
+  },
+  "author": "fed",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fedddddd/ftp-client/issues"
+  },
+  "homepage": "https://github.com/fedddddd/ftp-client#readme",
+  "dependencies": {
+    "@electron/remote": "^1.2.1",
+    "electron": "^13.2.1",
+    "filesize": "^8.0.0",
+    "ftp": "^0.3.10",
+    "humanize-duration": "^3.27.0",
+    "i18n": "^0.13.3",
+    "moment": "^2.29.1",
+    "open": "^8.2.1",
+    "open-file-explorer": "^1.0.2",
+    "progress-stream": "^2.0.0",
+    "ssh2-sftp-client": "^7.0.3",
+    "throttle": "^1.0.3"
+  }
+}

@@ -6,7 +6,7 @@ const templates    = require('./templates')
 const messageBox   = require('./message-box')
 const localization = require('./localization')
 const progress     = require('progress-stream')
-const { Readable } = require("stream")
+const { Readable } = require('stream')
 const Throttle     = require('throttle')
 
 const normalizePath = (_path) => {

@@ -1,11 +1,11 @@
 const { I18n } = require('i18n')
+const path     = require('path')
 
 const i18n = new I18n({
     locales: ['en'],
     defaultLocale: 'en',
-    directory: './locales'
+    directory: path.join(__dirname, '../../../locales')
 })
-
 
 const colorCode = (text) => {
     text = `^7${text}`

@@ -8,3 +8,5 @@ node_modules
 *.swp
 data/**
 package-lock.json
+bin/**
+package-lock.json
