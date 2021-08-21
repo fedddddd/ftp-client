@@ -297,7 +297,8 @@ window.templates = {
                     <i class="fas fa-file server-icon"></i>
                     <div class='server-info'>
                         <div class='server-name'>
-                            <i class="fas fa-arrow-${type == 'download' ? 'down' : 'up'}"></i> ${name}
+                            <i class="fas fa-arrow-${type == 'download' ? 'down' : 'up'}"></i>
+                            <div title='${name}'>${name}</div>
                         </div>
                         <div class='download-progress-wrap'>
                             <div class='download-progress'></div>

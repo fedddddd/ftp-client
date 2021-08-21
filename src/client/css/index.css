@@ -256,7 +256,7 @@ body {
 .explorer-container[viewtype="icon"] .explorer .file .file-icon {
     text-align: center;
     width: 100%;
-    font-size: 70px!important;
+    font-size: 60px!important;
 }
 
 .explorer-container[viewtype="icon"] .explorer .file .file-name {
@@ -303,7 +303,6 @@ body {
 .file-name[contentEditable="true"] {
     pointer-events: all!important;
     border-radius: 3px;
-    width: calc(max-content + 30px);
     border: 1px solid rgb(30, 30, 30);
     padding-left: 5px;
     padding-right: 5px;
@@ -312,6 +311,9 @@ body {
 
 .file-name {
     outline: none;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
 }
 
@@ -990,6 +992,18 @@ option {
 .download-list .server-info {
     width: 100%;
     padding-right: 10px;
+}
+
+.download-list .server-name * {
+    display: inline-block;
+}
+
+.download-list .server-name > div {
+    max-width: 200px;
+    height: 1.2em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .download-list .server-button {

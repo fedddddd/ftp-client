@@ -387,19 +387,15 @@ window.FileExplorer = class FileExplorer {
             selection.element = null
         }
         
-        const parentRect = this.elements.fileList.getBoundingClientRect()
         const mousemove = (e) => {
+            const parentRect = this.elements.fileList.getBoundingClientRect()
+
             if (!selection.element) {
                 return
             }
 
-            const viewtype = this.elements.explorer.getAttribute('viewtype')
-            const offset = viewtype && viewtype != 'list'
-                ? 30
-                : 0
-
             const width = (e.clientX - parentRect.x) - selection.start.x
-            const height = (e.clientY + offset - parentRect.y) + this.elements.fileList.scrollTop - selection.start.y
+            const height = (e.clientY - parentRect.y) + this.elements.fileList.scrollTop - selection.start.y
 
             if (width > 0) {
                 selection.element.style.width = width
@@ -432,7 +428,7 @@ window.FileExplorer = class FileExplorer {
             for (const child of this.elements.fileList.children) {
                 const childRect = child.getBoundingClientRect()
 
-                if (overlaps(rect, childRect)) {
+                if (overlaps(rect, childRect) && child != selection.element) {
                     this.selectedItems.push(child)
                 }
             }
@@ -983,6 +979,11 @@ window.FileExplorer = class FileExplorer {
         element.file = file
 
         element.addEventListener('dblclick', () => {
+            const name = element.querySelector('.file-name')
+            if (name.getAttribute('contenteditable') == 'true') {
+                return
+            }
+
             if (file.type == '-') {
                 this.open(file)
             } else {
@@ -1552,7 +1553,7 @@ window.FileExplorer = class FileExplorer {
         }
 
         const callback = () => {
-            print('FS_DOWNLOAD_FILE'.mf(source))
+            print('FS_DOWNLOAD_FILE'.mf(source, destination))
             this.client.get(source, destination)
             .then(() => {
                 print('FS_DOWNLOAD_FILE_SUCCESS'.mf(source))

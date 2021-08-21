@@ -7,9 +7,10 @@ const BrowserWindow = electron.BrowserWindow
 
 const createWindow = () => {
     const mainWindow = new BrowserWindow({
-        width: 1920,
-        height: 1080,
         frame: false,
+        fullscreen: true,
+        minWidth: 1250,
+        minHeight: 750,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
