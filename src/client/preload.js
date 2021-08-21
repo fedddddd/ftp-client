@@ -18,7 +18,7 @@ const localization = require('./js/localization')
 const io           = require('../utils/io')
 const createClient = require('./js/client')
 
-const authenticationTypes = ['ask', 'password', 'key']
+const authenticationTypes = ['ask', 'password', 'key', 'anonymous']
 const protocols = ['ftp', 'sftp']
 
 const baseConfig = {
@@ -32,6 +32,10 @@ const appConfig = new io.ConfigFile('./data/config/config.json', baseConfig)
 const knownHosts = new io.ConfigFile('./data/config/known-hosts.json')
 
 knownHosts.add = (host, os) => {
+    if (!os) {
+        return
+    }
+
     knownHosts.current[host] = os
     knownHosts.save()
 }
@@ -610,10 +614,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.body.appendChild(downloadListContainer)
 
-    const downloads = []
+    const transfers = []
     const updateProgressBar = () => {
-        const totalSize = downloads.length * 100
-        const value = downloads.reduce((total, download) => total + download.progress, 0)
+        const totalSize = transfers.length * 100
+        const value = transfers.reduce((total, download) => total + download.progress, 0)
         const percentage = (value / totalSize) * 100
 
         downloadsProgressBar.children[0].style.width = percentage + '%'
@@ -622,22 +626,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             : 'none'
     }
 
-    window.addDownload = (download) => {
-        const element = htmlElement(templates['download'](download.file.name))
+    window.addTransfer = (transfer) => {
+        const element = htmlElement(templates['download'](transfer.type, transfer.file.name))
         const progressBar = element.querySelector('.download-progress')
         const deleteButton = element.querySelector('[delete-btn]')
         const speed = element.querySelector('.download-speed')
-        const index = downloads.length
-        downloads.push(download)
+        const index = transfers.length
+        transfers.push(transfer)
 
         deleteButton.addEventListener('click', () => {
             element.remove()
-            download.end()
+            transfer.end()
             alignDownloadList()
         })
 
-        download.progressStream.on('progress', (progress) => {
-            download.progress = progress.percentage
+        transfer.progressStream.on('progress', (progress) => {
+            transfer.progress = progress.percentage
             progressBar.style.width = parseInt(progress.percentage) + '%'
             speed.innerText = 'FS_DOWNLOAD_SPEED_ETA'.mf({
                 speed: filesize(progress.speed), 
@@ -648,12 +652,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 speed.remove()
                 progressBar.parentNode.remove()
 
-                element.style.cursor = 'pointer'
-                element.addEventListener('click', () => {
-                    shell.showItemInFolder(download.destination)
-                })
+                if (transfer.type == 'download') {
+                    element.style.cursor = 'pointer'
+                    element.addEventListener('click', () => {
+                        shell.showItemInFolder(transfer.destination)
+                    })
+                }
 
-                downloads.splice(index, 1)
+                transfers.splice(index, 1)
             }
 
             updateProgressBar()
@@ -716,6 +722,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             knownHosts.add(config.host, os)
 
             print('CLIENT_CONNECT_SUCCESS'.mf(config.host))
+
             fileExplorer.currentDirectory = await client.currentDir()
             fileExplorer.listFiles()
         })

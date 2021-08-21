@@ -262,7 +262,7 @@ body {
 
 #explorer {
     height: calc(100% - 32px);
-    padding-right: 10px;
+    padding-right: 50px;
 }
 
 .scroll {
@@ -303,7 +303,7 @@ body {
 .explorer-header {
     padding-left: 10px;
     border-bottom: 2px solid rgb(60, 60, 60);
-    padding-right: 25px;
+    margin-right: 65px;
 }
 
 .no-border {
@@ -914,4 +914,11 @@ option {
 
 .download-list-button .server-list-button {
     margin-right: 0px!important;
+}
+
+.selection {
+    position: absolute;
+    pointer-events: none;
+    background-color: rgba(90, 90, 90, 50%);
+    border: 1px solid rgb(90, 90, 90);
 }

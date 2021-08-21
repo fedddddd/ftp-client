@@ -27,7 +27,7 @@ window.htmlElement = (html) => {
 window.templates = {
     'file': (data) => {
         return `
-        <div class="file left-right-container" file-element>
+        <div class="file left-right-container no-child-pointer-events" file-element>
             <div class="left">
                 <i class="fas ${getFileIcon(data.type, data.name)} fa-1x file-icon"></i>
                 <div class="file-name">${data.name}</div>
@@ -124,6 +124,7 @@ window.templates = {
                 <div class='right server-settings'>
                     <select name='Authentication type' input-auth-type class='form select'>
                         <option value="password" t="PASSWORD"></option>
+                        <option value="anonymous" t="ANONYMOUS"></option>
                         <option value="ask" t="ASK_PASSWORD"></option>
                         <option value="key" key-option t="PRIVATE_KEY"></option>
                     </select>
@@ -160,6 +161,7 @@ window.templates = {
                 <div class='right server-settings'>
                     <select name='Authentication type' input-auth-type class='form select'>
                         <option value="password" t="PASSWORD"></option>
+                        <option value="anonymous" t="ANONYMOUS"></option>
                         <option value="key" key-option t="PRIVATE_KEY"></option>
                     </select>
                     <input class='form' type='text' input-username data-placeholder="USERNAME">
@@ -287,14 +289,14 @@ window.templates = {
             </div>
         `
     },
-    'download': (name) => {
+    'download': (type, name) => {
         return `
             <div class='server'>
                 <div class='left'>
                     <i class="fas fa-file server-icon"></i>
                     <div class='server-info'>
                         <div class='server-name'>
-                            ${name}
+                            <i class="fas fa-arrow-${type == 'download' ? 'down' : 'up'}"></i> ${name}
                         </div>
                         <div class='download-progress-wrap'>
                             <div class='download-progress'></div>
@@ -306,6 +308,11 @@ window.templates = {
                     <i class="fas fa-times server-button click" delete-btn></i>
                 </div>
             </div>
+        `
+    },
+    'selection': () => {
+        return `
+            <div class='selection'></div>
         `
     }
 }

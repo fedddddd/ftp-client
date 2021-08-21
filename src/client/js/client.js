@@ -1,5 +1,5 @@
 const clientTypes = {
-    ftp: require('ftp'),
+    ftp: require('./ftp-client'),
     sftp: require('ssh2-sftp-client')
 }
 
@@ -8,10 +8,8 @@ const createClient = (type) => {
         case 'sftp':
             {
                 const client = new clientTypes.sftp()
-                client.original = {}
-                client._get = client.get
-                client._put = client.put
                 client.currentDir = client.cwd
+
                 client.getOS = async () => {
                     const resultRegex = /Distributor ID:(?: +|\t+)(.+)/g
                     
@@ -69,33 +67,9 @@ const createClient = (type) => {
         default:
             {
                 const client = new clientTypes.ftp()
-                client._connect = client.connect
-                client._get = client.get
-                client.currentDir = client.pwd
+
                 client.getOS = () => {
-                    return 'ftp'
-                }
-
-                client.get = (source, destination) => {
-                    client._get(source, (err, stream) => {
-                        if (err) {
-                            throw err
-                        }
-
-                        stream.pipe(fs.createWriteStream(destination))
-                    })
-                }
-
-                client.connect = (config) => {
-                    config.user = config.username
-
-                    return new Promise((resolve, reject) => {
-                        client.on('ready', () => {
-                            resolve()
-                        })
-
-                        client._connect(config)
-                    })
+                    return null
                 }
 
                 return client

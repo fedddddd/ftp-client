@@ -283,7 +283,142 @@ window.FileExplorer = class FileExplorer {
         this.elements.explorer.self = this
         parent.appendChild(this.elements.explorer)
         this.initalizeContextMenu()
+        this.initializeEventListeners()
         this.updateNavigationButtons()
+    }
+
+    initializeEventListeners = () => {
+        this.elements.fileList.addEventListener('dragover', (e) => {
+            e.preventDefault()
+        })
+
+        this.elements.fileList.addEventListener('drop', (e) => {
+            if (e.target != this.elements.fileList) {
+                return
+            }
+
+            if (!e.dataTransfer.files.length) {
+                return
+            }
+
+            for (const file of e.dataTransfer.files) {
+                this.upload(file, file.name)
+                .then((err) => {
+                    if (err) {
+                        return
+                    }
+
+                    this.listFiles(this.currentDirectory, false, false)
+                })
+            }
+        })
+
+        const selection = {
+            start: {x: 0, y: 0},
+            element: null
+        }
+
+        const mousedown = (e) => {
+            if (e.target != this.elements.fileList || e.offsetX >= this.elements.fileList.clientWidth) {
+                return
+            }
+
+            this.selectedItems = []
+            this.updateItems()
+
+            selection.start = {x: e.clientX, y: e.clientY}
+
+            selection.element = htmlElement(templates['selection']())
+            selection.element.style.left = selection.start.x
+            selection.element.style.top = selection.start.y
+
+            document.body.appendChild(selection.element)
+        }
+
+        const mouseup = (e) => {
+            if (!selection.element) {
+                return
+            }
+
+            selection.start = {x: 0, y: 0}
+            selection.element.remove()
+            selection.element = null
+        }
+        
+        const mousemove = (e) => {
+            if (!selection.element) {
+                return
+            }
+
+            const width = e.clientX - selection.start.x
+            const height = e.clientY - selection.start.y
+
+            const scrollBarWidth = this.elements.fileList.offsetWidth - this.elements.fileList.clientWidth
+
+            const maxRect = this.elements.fileList.getBoundingClientRect()
+            const maxWidth = width > 0
+                ? (maxRect.width + maxRect.x) - selection.start.x - scrollBarWidth
+                : maxRect.x - selection.start.x
+
+            const maxHeight = height > 0
+                ? (maxRect.height + maxRect.y) - selection.start.y
+                : maxRect.y - selection.start.y
+
+            if (width > 0) {
+                selection.element.style.width = Math.min(maxWidth, width)
+            } else {
+                selection.element.style.width = Math.max(maxWidth, width) * -1
+                selection.element.style.left = Math.max(maxRect.x, selection.start.x + width)
+            }
+
+            if (height > 0) {
+                selection.element.style.height = Math.min(maxHeight, height)
+            } else {
+                selection.element.style.height = Math.max(maxHeight, height) * -1
+                selection.element.style.top = Math.max(maxRect.y, selection.start.y + height)
+            }
+
+            const overlaps = (a, b) => {
+                if (a.x >= b.x + b.width || b.x >= a.x + a.width) {
+                    return false
+                }
+
+                if (a.y >= b.y + b.height || b.y >= a.y + a.height) {
+                    return false
+                }
+            
+                return true;
+            }
+
+            this.selectedItems = []
+            const rect = selection.element.getBoundingClientRect()
+            for (const child of this.elements.fileList.children) {
+                const childRect = child.getBoundingClientRect()
+
+                if (overlaps(rect, childRect)) {
+                    this.selectedItems.push(child)
+                }
+            }
+
+            this.updateItems()
+        }
+
+        document.addEventListener('mousedown', mousedown)
+        document.addEventListener('mouseup', mouseup)
+        document.addEventListener('mousemove', mousemove)
+
+        const onRemoved = (e) => {
+            if (e.target != this.elements.explorer) {
+                return
+            }
+
+            document.removeEventListener('mouseup', mousedown)
+            document.removeEventListener('mouseup', mouseup)
+            document.removeEventListener('mousemove', mousemove)
+            this.elements.explorer.parentNode.removeEventListener('DOMNodeRemoved', onRemoved)
+        }
+
+        this.elements.explorer.parentNode.addEventListener('DOMNodeRemoved', onRemoved)
     }
 
     initalizeContextMenu = () => {
@@ -616,7 +751,6 @@ window.FileExplorer = class FileExplorer {
         for (const child of this.elements.fileList.children) {
             child.style.backgroundColor = ''
             child.style.opacity = '100%'
-            child.classList.remove('no-child-pointer-events')
         }
 
         for (const item of this.selectedItems) {
@@ -653,12 +787,6 @@ window.FileExplorer = class FileExplorer {
                 this.selectedItems.push(element)
             }
 
-            for (const child of this.elements.fileList.children) {
-                child.classList.add('no-child-pointer-events')
-            }
-
-            this.dragStart = element
-
             const draggedElements = document.createElement('div')
             draggedElements.setAttribute('file-drag', '')
 
@@ -691,8 +819,6 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.addEventListener('dragend', (e) => {
-            this.dragStart = null
-
             Array.from(document.querySelectorAll('[file-drag]')).forEach((element) => {
                 element.remove()
             })
@@ -702,7 +828,7 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.addEventListener('dragenter', (e) => {
-            if (element == this.dragStart) {
+            if (element.file.type != 'd' || this.selectedItems.find(item => item == element)) {
                 return
             }
 
@@ -711,17 +837,12 @@ window.FileExplorer = class FileExplorer {
         })
 
         element.addEventListener('dragleave', (e) => {
-            if (element == this.dragStart) {
+            if (element.file.type != 'd' || this.selectedItems.find(item => item == element)) {
                 return
             }
 
-            if (this.selectedItems.find(item => item == element)) {
-                element.style.opacity = this.dragStart ? 0.5 : 1
-                element.style.backgroundColor = this.dragStart ? 'rgb(30, 30, 30)' : 'rgb(90, 90, 90)'
-            } else {
-                element.style.opacity = null
-                element.style.backgroundColor = null
-            }
+            element.style.opacity = null
+            element.style.backgroundColor = null
         })
 
         element.addEventListener('dragover', (e) => {
@@ -731,14 +852,14 @@ window.FileExplorer = class FileExplorer {
         element.addEventListener('drop', (e) => {
             const folder = normalizePath(this.currentDirectory + '/' + element.file.name + '/')
 
-            if (element.file.type != 'd' || element == this.dragStart) {
+            if (element.file.type != 'd' || this.selectedItems.find(item => item == element)) {
                 return
             }
 
             if (e.dataTransfer.files.length) {
                 for (const file of e.dataTransfer.files) {
                     const dest = normalizePath(element.file.name + '/' + file.name)
-                    this.upload(file.path, dest)
+                    this.upload(file, dest)
                     .then((err) => {
                         if (err) {
                             return
@@ -756,7 +877,7 @@ window.FileExplorer = class FileExplorer {
                     continue
                 }
 
-                this.move(item.file, element.file)
+                this.move(item.file, element.file.name)
                 .then((err) => {
                     if (err) {
                         return
@@ -845,10 +966,24 @@ window.FileExplorer = class FileExplorer {
             })
     
             element.addEventListener('drop', (e) => {
+                if (e.dataTransfer.files.length) {
+                    for (const file of e.dataTransfer.files) {
+                        const dest = normalizePath(newDirectory + '/' + file.name)
+                        this.upload(file, dest, true)
+                        .then((err) => {
+                            if (err) {
+                                return
+                            }
+    
+                            this.cachedDirectories[newDirectory] = null
+                        })
+                    }
+    
+                    return
+                }
+
                 for (const item of this.selectedItems) {
-                    this.move(item.file, {
-                        name: newDirectory
-                    }, true)
+                    this.move(item.file, newDirectory, true)
                     .then((err) => {
                         if (err) {
                             return
@@ -883,7 +1018,7 @@ window.FileExplorer = class FileExplorer {
 
         const selectedFiles = Array.from(this.selectedItems).map(item => item.file)
         this.selectedItems = []
-        const filteredFiles = this.currentFiles.filter(file => !match || file.name.match(match))
+        const filteredFiles = this.currentFiles.filter(file => !match || file.name.trim().toLowerCase().match(match))
         const files = sortFunctions[this.sortFunction](filteredFiles, this.reverseSort)
 
         this.elements.fileList.innerHTML = null
@@ -899,10 +1034,24 @@ window.FileExplorer = class FileExplorer {
             const split = this.currentDirectory.split('/')
             const backDir = normalizePath(split.slice(0, split.length - 2).join('/') + '/')
 
+            if (e.dataTransfer.files.length) {
+                for (const file of e.dataTransfer.files) {
+                    const dest = normalizePath(backDir + '/' + file.name)
+                    this.upload(file, dest, true)
+                    .then((err) => {
+                        if (err) {
+                            return
+                        }
+
+                        this.cachedDirectories[backDir] = null
+                    })
+                }
+
+                return
+            }
+
             for (const item of this.selectedItems) {
-                this.move(item.file, {
-                    name: '/../'
-                })
+                this.move(item.file, backDir, true)
                 .then((err) => {
                     if (err) {
                         return
@@ -982,15 +1131,15 @@ window.FileExplorer = class FileExplorer {
                 return
             }
     
-            print('CLIENT_LIST_DIRECTORY'.mf(directory))
+            print('FS_LIST_DIRECTORY'.mf(directory))
             this.client.list(directory)
             .then((files) => {
                 callback(files)
-                print('CLIENT_LIST_DIRECTORY_SUCCESS'.mf(directory))
+                print('FS_LIST_DIRECTORY_SUCCESS'.mf(directory))
                 resolve()
             })
             .catch((err) => {
-                error('CLIENT_LIST_DIRECTORY_FAIL'.mf(directory, baseErrorMessage(err)))
+                error('FS_LIST_DIRECTORY_FAIL'.mf(directory, baseErrorMessage(err)))
                 resolve(err)
             })
         })
@@ -1002,11 +1151,11 @@ window.FileExplorer = class FileExplorer {
             this.client.mkdir(target)
             .then(() => {
                 resolve()
-                print('CLIENT_CREATE_DIR_SUCCESS'.mf(target))
+                print('FS_CREATE_DIR_SUCCESS'.mf(target))
             })
             .catch((err) => {
                 resolve(err)
-                error('CLIENT_CREATE_DIR_FAIL'.mf(target, baseErrorMessage(err)))
+                error('FS_CREATE_DIR_FAIL'.mf(target, baseErrorMessage(err)))
             })
         })
     }
@@ -1031,7 +1180,7 @@ window.FileExplorer = class FileExplorer {
 
     move = async (file, folder, asbsolutePath) => {
         const oldPath = normalizePath(this.currentDirectory + '/' + file.name)
-        const newPath = normalizePath((asbsolutePath ? '' : this.currentDirectory + '/') + folder.name + '/' + file.name)
+        const newPath = normalizePath((asbsolutePath ? '' : this.currentDirectory + '/') + folder + '/' + file.name)
 
         print('FS_MOVE_FILE'.mf(oldPath, newPath))
         return new Promise((resolve, reject) => {
@@ -1083,54 +1232,90 @@ window.FileExplorer = class FileExplorer {
         })
     }
 
-    upload = (path, dest) => {
-        const destination = normalizePath(this.currentDirectory + '/' + dest)
-
-        print('FS_UPLOAD_FILE'.mf(path, destination))
+    upload = (file, dest, asbsolutePath) => {
         return new Promise((resolve, reject) => {
-            this.client.put(path, destination)
-            .then(() => {
-                print('FS_UPLOAD_FILE_SUCCESS'.mf(path))
-                resolve()
+            const destination = normalizePath((asbsolutePath ? '' : this.currentDirectory + '/') + dest)
+            print('FS_UPLOAD_FILE'.mf(file.path, destination))
+
+            const progressStream = progress({
+                length: file.size,
+                time: 100
             })
+
+            progressStream.on('progress', (progress) => {
+                if (progress.remaining == 0) {
+                    print('FS_UPLOAD_FILE_SUCCESS'.mf(file.path))
+                    resolve()
+                }
+            })
+    
+            const inStream = fs.createReadStream(file.path)
+            inStream.pipe(progressStream)
+    
+            const transfer = {
+                type: 'upload',
+                file,
+                progressStream,
+                end: () => {
+                    progressStream.end()
+                    inStream.end()
+                }
+            }
+    
+            window.addTransfer(transfer)
+
+            this.client.put(progressStream, destination)
             .catch((err) => {
-                error('FS_UPLOAD_FILE_FAIL'.mf(path, baseErrorMessage(err)))
+                error('FS_UPLOAD_FILE_FAIL'.mf(file.path, baseErrorMessage(err)))
                 resolve(err)
             })
         })
     }
 
     download = (file) => {
-        const source = normalizePath(this.currentDirectory + '/' + file.name)
-        const desinationFolder = normalizePath(os.homedir() + '/Downloads/')
-        const destination = desinationFolder + file.name
+        return new Promise((resolve, reject) => {
+            const source = normalizePath(this.currentDirectory + '/' + file.name)
+            const desinationFolder = normalizePath(os.homedir() + '/Downloads/')
+            const destination = desinationFolder + file.name
 
-        const progressStream = progress({
-            length: file.size,
-            time: 100
-        })
+            print('FS_DOWNLOAD_FILE'.mf(source, destination))
+    
+            const progressStream = progress({
+                length: file.size,
+                time: 100
+            })
 
-        //const throttleStream = new Throttle(1000)
-
-        const outStream = fs.createWriteStream(destination)
-        progressStream.pipe(outStream)
-
-        const download = {
-            file,
-            progressStream,
-            destination,
-            desinationFolder,
-            end: () => {
-                progressStream.end()
-                outStream.end()
+            progressStream.on('progress', (progress) => {
+                if (progress.remaining == 0) {
+                    print('FS_DOWNLOAD_FILE_SUCCESS'.mf(source))
+                    resolve()
+                }
+            })
+    
+            const outStream = fs.createWriteStream(destination)
+            progressStream.pipe(outStream)
+    
+            const transfer = {
+                type: 'download',
+                file,
+                progressStream,
+                destination,
+                desinationFolder,
+                end: () => {
+                    progressStream.end()
+                    outStream.end()
+                }
             }
-        }
-
-        window.addDownload(download)
-
-        this.client.get(source, progressStream, {autoClose: false})
-        .then(() => {})
-        .catch((err) => {})
+    
+            window.addTransfer(transfer)
+    
+            this.client.get(source, progressStream, {autoClose: false})
+            .then(() => {})
+            .catch((err) => {
+                print('FS_DOWNLOAD_FILE_FAIL'.mf(source, baseErrorMessage(err)))
+                resolve(err)
+            })
+        })
     }
 
     open = async (file) => {
@@ -1148,10 +1333,10 @@ window.FileExplorer = class FileExplorer {
         }
 
         const callback = () => {
-            print('CLIENT_DOWNLOAD'.mf(source))
+            print('FS_DOWNLOAD_FILE'.mf(source))
             this.client.get(source, destination)
             .then(() => {
-                print('CLIENT_DOWNLOAD_SUCCESS'.mf(source))
+                print('FS_DOWNLOAD_FILE_SUCCESS'.mf(source))
             
                 var messageBoxOpen = false
                 const watcher = fs.watch(destination, async (event) => {
@@ -1170,13 +1355,13 @@ window.FileExplorer = class FileExplorer {
                             return
                         }
             
-                        print('CLIENT_UPLOAD'.mf(destination))
+                        print('FS_UPLOAD_FILE'.mf(destination, source))
                         this.client.put(destination, source)
                         .then(() => {
-                            print('CLIENT_UPLOAD_SUCCESS'.mf(destination))
+                            print('FS_UPLOAD_FILE_SUCCESS'.mf(destination))
                         })
                         .catch(() => {
-                            print('CLIENT_UPLOAD_FAIL'.mf(destination))
+                            print('FS_UPLOAD_FILE_FAIL'.mf(destination))
                         })
                     })
                 })
@@ -1189,7 +1374,7 @@ window.FileExplorer = class FileExplorer {
                 open(destination)
             })
             .catch(() => {
-                print('CLIENT_DOWNLOAD_FAIL'.mf(source))
+                print('FS_DOWNLOAD_FILE_FAIL'.mf(source))
             })
         }
 
