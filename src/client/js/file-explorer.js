@@ -1134,7 +1134,7 @@ window.FileExplorer = class FileExplorer {
                             ? first.fileId
                             : element.fileId
         
-                        for (const child of explorer.children) {
+                        for (const child of this.elements.fileList.children) {
                             if (child.fileId >= start && child.fileId <= end) {
                                 if (this.selectedItems.find(item => item.fileId == child.fileId)) {
                                     continue
